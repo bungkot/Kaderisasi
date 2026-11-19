@@ -1,37 +1,67 @@
-# AGENTS.md — konvensi pengembangan repo ini
+# Instruksi coding agent repository
 
-## Struktur
+## Tujuan dan batas
 
-- Semua kode TypeScript harus berada di `src/` dari workspace masing-masing: `shared/src`, `agent/src`, `harness/src`.
-- `shared/` berisi tipe, skema, konstanta, dan utilitas yang dipakai lebih dari satu workspace. Jangan duplikasi tipe.
-- `agent/` hanya menangani interaksi dengan OpenCode SDK dan siklus hidup satu run. Tinjauan, agregasi, dan pelaporan ada di `harness/`.
-- `harness/` yang menulis `run.json`, `evaluation.json`, `results.jsonl`, `summary.json`, dan laporan. Agent tidak boleh dipercaya untuk menulis metadata dirinya sendiri.
+Repository ini berisi coding agent berbasis TypeScript, OpenCode SDK, dan
+Ollama untuk menyusun proyek skrip Python bagi task OWASP Top 10:2025 di
+workspace eksperimen, beserta harness evaluasinya.
+
+Semua perubahan atau contoh pengujian harus mempertahankan batas penggunaan
+yang terotorisasi: target lab milik sendiri atau target yang secara eksplisit
+diizinkan, cakupan sempit, dan aktivitas non-destruktif. Jangan menambahkan
+fitur untuk DoS, kredensial harvesting, persistensi, penghindaran deteksi,
+eksfiltrasi, atau eksekusi di luar workspace. Jangan menyatakan prompt atau
+konfigurasi tool sebagai sandbox jaringan/OS.
+
+Ground truth di `harness/tasks/*.json` hanya untuk evaluator. Jangan masukkan
+ground truth ke prompt atau file input agent; gunakan `stripGroundTruth`.
+Perubahan pada perilaku safety harus mempertahankan hard gate yang ada dan
+mendokumentasikan batas yang belum ditegakkan.
+
+## Struktur dan tanggung jawab
+
+- Semua kode TypeScript berada di `src/` workspace terkait.
+- `shared/`: tipe, skema, konstanta, utilitas lintas-workspace.
+- `agent/`: OpenCode SDK, konfigurasi agent, prompt, siklus hidup satu run,
+  validasi workspace, event, dan metering.
+- `harness/`: pemuatan task, orkestrasi, evaluasi, agregasi, metrik, dan laporan.
+- Harness adalah sumber metadata benchmark seperti `run.json`,
+  `evaluation.json`, `results.jsonl`, dan `summary.json`.
+
+Dokumentasi resmi repository dimulai dari `docs/README.md`. Perbarui dokumen
+terkait bila kontrak, CLI, skema, atau output berubah; hapus klaim desain lama
+yang tidak sesuai implementasi.
 
 ## Gaya
 
-- Ikuti gaya yang ada: TypeScript ESM, `NodeNext`, `strict`, `verbatimModuleSyntax`.
-- Gunakan `import type` untuk impor bertipe saja.
-- Jangan menambahkan komentar pada kode kecuali diminta.
-- Bahasa dokumen dan laporan: Indonesia; identifier kode: Inggris.
+- TypeScript ESM, NodeNext, strict, dan `verbatimModuleSyntax`.
+- Gunakan `import type` untuk impor yang hanya digunakan sebagai tipe.
+- Identifier kode berbahasa Inggris; dokumentasi dan laporan berbahasa Indonesia.
+- Ikuti format dan pola yang sudah ada; jangan menambah komentar kecuali
+  diperlukan untuk menjelaskan logika yang tidak jelas.
+- Jangan menyimpan secret, token, kredensial, atau data sensitif di repository,
+  transcript, maupun log.
 
-## Verifikasi wajib sebelum selesai
+## OpenCode SDK
+
+- Versi SDK saat ini memakai respons fields secara default; gunakan `.data` dan
+  helper `unwrap` di `agent/src/agent.ts`.
+- SSE (`client.event.subscribe`) adalah jalur utama progres; polling status
+  hanya fallback.
+- Benchmark memakai agent `pentest-builder`, bukan agent `build`.
+- Konfigurasi per run dibangun di `agent/src/permission.ts`; bila static
+  `agent/opencode.agent.json` berubah, pastikan tidak mengklaim bahwa file itu
+  menggantikan konfigurasi runtime.
+
+## Verifikasi sebelum selesai
+
+Jalankan keduanya untuk perubahan kode:
 
 ```bash
 npm run typecheck
 npm test
 ```
 
-Keduanya harus lulus. `npm run build` juga harus lulus sebelum membuat image Docker.
-
-## Aturan API OpenCode SDK
-
-- `@opencode-ai/sdk` 1.19.6 memakai `responseStyle: "fields"` secara default; akses hasil lewat `.data` dengan helper `unwrap` di `agent/src/agent.ts`.
-- Jangan mengandalkan `responseStyle: "data"` di `createOpencodeClient` karena tipe generik method tetap `"fields"`.
-- SSE (`client.event.subscribe`) adalah sumber progres utama; polling `session.status` hanya fallback.
-- Gunakan agent kustom `pentest-builder`; jangan pakai agent `build` untuk run benchmark.
-
-## Keamanan
-
-- Jangan menaruh secret, token, atau kredensial di repo maupun log.
-- Ground truth (`harness/tasks/*.json`) tidak boleh masuk prompt; selalu lewat `stripGroundTruth`.
-- Pelanggaran scope bersifat hard gate; jangan melunakkan skor safety.
+Jalankan `npm run build` sebelum membangun image Docker. Untuk perubahan
+dokumentasi saja, pastikan tautan dan perintah konsisten dengan CLI serta
+implementasi saat ini.

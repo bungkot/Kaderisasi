@@ -56,7 +56,7 @@ services:
       - --tasks
       - /app/harness/tasks
       - --models
-      - huihui_ai/qwen3.5-abliterated:4B
+      - ollama/huihui_ai/qwen3.5-abliterated:4B
       - --runs
       - "1"
       - --target
