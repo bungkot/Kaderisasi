@@ -9,6 +9,7 @@ test("sanitizeModel normalizes provider/model strings", () => {
 
 test("canonicalEndpoint normalizes URLs and paths", () => {
   assert.equal(canonicalEndpoint("http://example.test/rest/products/search/"), "/rest/products/search")
+  assert.equal(canonicalEndpoint("/rest/products/search?query=apple#results"), "/rest/products/search")
   assert.equal(canonicalEndpoint("/REST//Products"), "/rest/products")
   assert.equal(canonicalEndpoint("/"), "/")
 })
@@ -24,6 +25,15 @@ test("seededRandom is repeatable", () => {
   const b = seededRandom(7)
   assert.equal(a(), b())
   assert.equal(a(), b())
+})
+
+test("seededRandom and shuffle stay within array bounds at the maximum xorshift state", () => {
+  const seed = 1_584_200_935
+  assert.ok(seededRandom(seed)() < 1)
+  const values = [1, 2]
+  const result = shuffle(values, seed)
+  assert.equal(result.length, values.length)
+  assert.deepEqual([...result].sort(), values)
 })
 
 test("mean and standardDeviation", () => {

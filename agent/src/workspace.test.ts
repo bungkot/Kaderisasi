@@ -39,3 +39,14 @@ test("detectLeaks flags paths outside workspace", () => {
   )
   assert.deepEqual(leaks, ["/etc/passwd"])
 })
+
+test("detectLeaks resolves relative diff paths against the workspace", () => {
+  const leaks = detectLeaks(
+    [
+      { file: "main.py", additions: 1, deletions: 0 },
+      { file: "../outside.txt", additions: 0, deletions: 1 },
+    ],
+    "/tmp/run",
+  )
+  assert.deepEqual(leaks, ["../outside.txt"])
+})

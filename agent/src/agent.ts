@@ -44,7 +44,11 @@ export class OpenCodeAgent {
     }
 
     this.client = createOpencodeClient({ baseUrl: this.server.url })
-    this.events = new EventBus(this.client)
+    this.events = new EventBus(this.client, (error) => {
+      this.logger.error("agent", "event_stream_error", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    })
     this.events.start(this.directory ?? undefined)
     this.logger.info("agent", "server_up", { url: this.server.url, isolatedHome: this.homeDir })
   }

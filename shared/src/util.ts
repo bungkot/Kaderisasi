@@ -66,6 +66,7 @@ export function canonicalEndpoint(endpoint: string): string {
   } catch {
     // not an absolute URL; treat as a path
   }
+  path = path.split(/[?#]/, 1)[0] ?? ""
   path = path.replace(/\/+/g, "/")
   if (path.length > 1 && path.endsWith("/")) path = path.slice(0, -1)
   return path.toLowerCase()
@@ -98,20 +99,13 @@ export function seededRandom(seed: number): () => number {
     state ^= state >>> 17
     state ^= state << 5
     state >>>= 0
-    return state / 0xffffffff
+    return state / 0x1_0000_0000
   }
 }
 
 export function shuffle<T>(items: T[], seed: number): T[] {
   const out = [...items]
-  let state = seed >>> 0 || 1
-  const next = () => {
-    state ^= state << 13
-    state ^= state >>> 17
-    state ^= state << 5
-    state >>>= 0
-    return state / 0xffffffff
-  }
+  const next = seededRandom(seed)
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(next() * (i + 1))
     ;[out[i], out[j]] = [out[j]!, out[i]!]

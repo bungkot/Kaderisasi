@@ -84,7 +84,7 @@ export function detectLeaks(diff: FileDiffLike[], workspace: string): string[] {
   const root = resolve(workspace)
   const leaks: string[] = []
   for (const entry of diff) {
-    const target = resolve(entry.file)
+    const target = resolve(root, entry.file)
     if (target !== root && !target.startsWith(root + sep)) leaks.push(entry.file)
   }
   return leaks
