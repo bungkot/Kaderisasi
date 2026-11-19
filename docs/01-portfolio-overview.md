@@ -9,7 +9,7 @@ Tiga fokus portfolio dan bagaimana mereka terwujud:
 | Fokus | Bukti kerja |
 |---|---|
 | **Coding Agent** | `agent/` — integrasi OpenCode SDK, session/tools, prompt engineering, safety constraints, usage metering |
-| **Kubernetes** | Ollama serving, target, runner, NetworkPolicy, monitoring di KubeRaya (1-node) — `manifests/` |
+| **Docker** | Ollama serving, target Juice Shop, runner via docker compose — `docker-compose.yml` |
 | **SRE** | metrik pipeline, SLO, statistik benchmark, reproducibility, cost awareness — `harness/`, `docs/03`, `docs/04` |
 
 ## 2. Masalah & pertanyaan riset
@@ -19,7 +19,7 @@ Tiga fokus portfolio dan bagaimana mereka terwujud:
 Masalah yang ingin dijawab:
 1. LLM code generation sering "black box" — bagaimana mengukur kapabilitas nyata pada domain security?
 2. Bagaimana mengevaluasi agen secara **scientific** (kontrol, repeat, statistik), bukan sekadar demo?
-3. Bagaimana mengoperasikannya dengan disiplin **SRE** (observability, SLO, biaya) di **Kubernetes**?
+3. Bagaimana mengoperasikannya dengan disiplin **SRE** (observability, SLO, biaya) via **Docker Compose**?
 
 ## 3. Ringkasan metode (satu paragraf)
 
@@ -33,8 +33,8 @@ Untuk 10 task (A01–A10) × ≥3 model × n≥5 run, agent menerima task card d
 | Prompt engineering & safety | `agent/src/prompts.ts`, `agent/src/permission.ts` |
 | Integrasi SDK/model | `agent/src/permission.ts` (`buildAgentConfig`), `agent/opencode.agent.json`, `opencode.json` |
 | Evaluasi ilmiah | `docs/03-benchmark-methodology.md`, `harness/src/evaluate.ts`, `harness/src/aggregate.ts` |
-| Kubernetes | `manifests/60-benchmark/**` (Ollama, guard, target, NetworkPolicy, monitoring), `scripts/guard.py` |
-| SRE/observability | `docs/04-infra-sre-kuberaya.md`, `harness/src/metrics.ts`, metrik `agent_*` |
+| Docker | `docker-compose.yml` (Ollama, Juice Shop target, harness runner via profile `bench`) |
+| SRE/observability | `docs/04-infra-sre-docker.md`, `harness/src/metrics.ts`, metrik `agent_*` |
 | Reprodusibilitas | perintah di `README.md`, artefak `results.jsonl`, `harness/src/report.ts` |
 
 ## 5. Matriks skill yang ditunjukkan
@@ -46,7 +46,7 @@ Untuk 10 task (A01–A10) × ≥3 model × n≥5 run, agent menerima task card d
 | LLM/Ollama | provider config, model selection, GPU-less inference |
 | AI Applied Engineering | prompt design, agent loop, repair iterations, eval harness |
 | Security (OWASP 2025) | task design, ground truth, evidence rubric |
-| Kubernetes | manifests, namespace isolation, policy, scheduling |
+| Docker | compose services, mounted `./runs`, profiles, container networking |
 | SRE | metrik, SLO, alerting, reliability benchmark, cost |
 | Data/Statistik | experiment design, CI, pass@k, error analysis |
 | Komunikasi | laporan infografis untuk等非-teknis |
@@ -57,7 +57,7 @@ Untuk 10 task (A01–A10) × ≥3 model × n≥5 run, agent menerima task card d
 |---|---|
 | 1. Agent scaffold + SDK | ✅ |
 | 2. Harness + 10 task | ✅ |
-| 3. Ollama di KubeRaya | ✅ manifest (perlu deploy) |
+| 3. Ollama via Docker | ✅ docker compose (`docker compose --profile bench up`) |
 | 4. Eksperimen & hasil | ⏳ |
 | 5. Infografis publik | ⏳ |
 

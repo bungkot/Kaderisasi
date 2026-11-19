@@ -48,6 +48,7 @@ services:
       TARGET_URL: http://juice-shop:3000
     volumes:
       - ./runs:/data/runs
+      - ./workspaces:/app/harness/workspaces
     command:
       - node
       - dist/index.js
@@ -65,7 +66,7 @@ services:
       - --out
       - /data/runs
       - --workspace-root
-      - /data/runs/workspaces
+      - ./workspaces
       - --ollama-base-url
       - http://ollama:11434/v1
       - --timeout-ms

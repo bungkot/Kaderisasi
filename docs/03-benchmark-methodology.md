@@ -49,12 +49,10 @@ runs/
 └── <model>/<task>/<rep>/         # <model> = sanitize(); <rep> = indeks 0-based
     ├── task.agent.json           # task card tanpa ground truth (dikirim ke agent)
     ├── run.json                  # RunResult: durasi, token, cost, status, artefak
-    ├── evaluation.json           # skor + detail temuan + metrics
-    ├── agent.log                 # stdout/stderr proses agent
-    ├── workspace-root/
-    │   └── <run_id>/             # artefak agent (proyek Python)
-    └── transcripts/
-        └── <run_id>.json         # pesan + parts OpenCode
+    └── evaluation.json           # skor + detail temuan + metrics
+
+workspaces/<run_id>/              # artefak agent (proyek Python) — di root proyek
+transcripts/<run_id>.json         # pesan + parts OpenCode
 ```
 
 Penulis artefak: `results.jsonl`, `summary.json` (dua lokasi), `evaluation.json`,
@@ -66,7 +64,7 @@ dengan yang didokumentasikan di `harness/README.md` §Struktur output.
 
 Isolasi:
 - Workspace unik per run.
-- Jaringan runner dibatasi ke target (K8s NetworkPolicy / docker network khusus).
+- Jaringan runner dibatasi ke target (docker network khusus).
 - Target di-restart ke state bersih sebelum tiap run (reproducibility).
 
 ## 4. Metrik keberhasilan

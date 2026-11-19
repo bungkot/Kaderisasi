@@ -29,7 +29,7 @@ sequenceDiagram
     participant H as Harness (TS)
     participant A as CodingAgent (TS)
     participant S as OpenCode Server
-    participant M as Ollama (KubeRaya)
+    participant M as Ollama (Docker Compose)
     participant W as Workspace FS
 
     H->>A: run(taskCard)
@@ -154,8 +154,8 @@ Contoh `opencode.json` (atau `OPENCODE_CONFIG_CONTENT`):
   "provider": {
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Ollama (KubeRaya)",
-      "options": { "baseURL": "http://ollama.satpam-benchmark.svc.cluster.local:11434/v1" },
+      "name": "Ollama (Docker Compose)",
+      "options": { "baseURL": "http://ollama:11434/v1" },
       "models": {
         "huihui_ai/qwen3.5-abliterated:4B":        { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
         "qwen3:4b":          { "name": "Qwen3 4B",          "tool_call": true },

@@ -105,7 +105,7 @@ program
       maxSteps: 3,
       maxToolCalls: 3,
       maxRepairRounds: 0,
-      workspaceRoot: "./runs/workspaces",
+      workspaceRoot: "./workspaces",
       ollamaBaseUrl: o.ollamaBaseUrl,
     }
     const result = await checkToolCalling(options, logger)

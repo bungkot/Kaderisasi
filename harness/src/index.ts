@@ -42,7 +42,7 @@ program
   .option("--seed <n>", "seed randomisasi", Number, 42)
   .option("--out <dir>", "direktori output", "./runs")
   .option("--ollama-base-url <url>", "Ollama base URL", "http://127.0.0.1:11434/v1")
-  .option("--workspace-root <dir>", "root workspace per run", "./runs/workspaces")
+  .option("--workspace-root <dir>", "root workspace per run", "./workspaces")
   .option("--timeout-ms <ms>", "timeout per run", Number, AGENT_DEFAULTS.timeoutMs)
   .action(async (opts: unknown) => {
     const o = opts as BenchOptions & { models: string }

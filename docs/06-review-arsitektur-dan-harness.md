@@ -16,7 +16,7 @@ Repo ini **hanya berisi docs** (5 file, tanpa git, tanpa kode). Kondisi nyata:
 | `agent/src/agent.ts`, `agent/src/prompts.ts`, `agent/opencode.json.example` | tidak ada |
 | `harness/src/evaluate.ts`, `harness/src/aggregate.ts`, `harness/src/report.ts`, `harness/README.md` | tidak ada |
 | `harness/tasks/*.json` (10 task) | tidak ada |
-| `manifests/60-benchmark/` | tidak ada |
+| `manifests/60-benchmark/` | di-hapus (setup Docker Compose) |
 | `README.md` (perintah reproduksi) | tidak ada |
 | `archive/analyzer-v1/` | tidak ada |
 
@@ -39,7 +39,7 @@ Temuan teknis yang harus diperbaiki sebelum menulis kode:
    validitas: n≥5 terlalu kecil untuk Wilcoxon, multiple comparison 30 uji, target
    "di-restart" belum tentu reset state, dan kontensi resource di 1 node (§7.4).
 
-Rekomendasi arsitektur (detail §4–§10): monorepo `agent/` + `harness/` + `manifests/`,
+Rekomendasi arsitektur (detail §4–§10): monorepo `agent/` + `harness/` (infra via docker-compose),
 loop berbasis event SSE dengan fallback polling, kontrak artefak imutabel yang ditulis
 harness (bukan agent), evaluator deterministik, statistik bootstrap + koreksi
 multi-test, dan enforcement keamanan di luar prompt.
@@ -51,7 +51,7 @@ multi-test, dan enforcement keamanan di luar prompt.
 - `docs/01` portfolio overview — masalah, metode, evidence map, matriks skill.
 - `docs/02` coding agent design — kontrak workspace, prompt, konfigurasi Ollama, SRE.
 - `docs/03` benchmark methodology — task suite, metrik, statistik, validitas.
-- `docs/04` infra & SRE KubeRaya — topologi, NetworkPolicy, observability.
+- `docs/04` infra & SRE Docker Compose — topologi, observability.
 - `docs/05` infographic spec — sumber data, seksi laporan, visual.
 
 Kualitas docs secara umum **bagus**: ada kontrol, randomisasi, repeat, rubrik berbobot,
@@ -65,9 +65,9 @@ dan ketegasan beberapa definisi (§7).
 | Agent | belum ada adapter SDK, loop, prompt, permission policy | tidak ada yang bisa dijalankan |
 | Harness | belum ada orchestrator, evaluator, agregasi, report | tidak ada pengukuran |
 | Task suite | 10 task card + ground truth belum ada | evaluator tak punya pembanding |
-| Infra | manifest K8s belum ada | tidak bisa direproduksi |
+| Infra | docker-compose.yml belum ada | tidak bisa direproduksi |
 | Repo | tanpa `README.md`, `package.json`, `tsconfig`, git | tidak reproducible |
-| Keamanan | tanpa guard jaringan/sandbox eksekusi | klaim safety tak terverifikasi |
+| Keamanan | tanpa isolation jaringan tambahan/sandbox eksekusi | klaim safety tak terverifikasi |
 | Data | tanpa `results.jsonl`, `summary.json` | laporan tak bisa dibangun |
 
 ## 2. Verifikasi docs/02 terhadap SDK `@opencode-ai/sdk@1.19.6`
@@ -171,8 +171,8 @@ docs/02 §6 hampir benar, kecuali key model. Bentuk `ProviderConfig` yang valid:
   "provider": {
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Ollama (KubeRaya)",
-      "options": { "baseURL": "http://ollama.satpam-benchmark.svc.cluster.local:11434/v1" },
+      "name": "Ollama (Docker Compose)",
+      "options": { "baseURL": "http://ollama:11434/v1" },
       "models": {
         "huihui_ai/qwen3.5-abliterated:4B":        { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
         "qwen3:4b":          { "name": "Qwen3 4B",          "tool_call": true },
@@ -233,18 +233,13 @@ docs/02 §5 meminta agen mematuhi scope, rate limit, non-destruktif. Model 1.5b/
 sering melanggar (langkah berulang, curl ke host lain, payload DoS). Evaluator safety
 (5%) hanya menghukum setelah fakta. Perlu defense-in-depth:
 
-1. **Guard egress** (`satpam-guard`): proxy HTTP dalam namespace yang mengizinkan hanya
-   host target dan menolak sisanya, plus rate limit global (mis. ≤10 req/s) dan ukuran
-   body maksimum. Agent dan skrip hasil agent **wajib** lewat proxy (variabel
-   `HTTP_PROXY`/`HTTPS_PROXY` atau `TARGET_BASE_URL` internal).
-2. **NetworkPolicy** default-deny, allow hanya `runner → guard`, `guard → target`,
-   `runner → ollama`, `runner → dns`. (docs/04 §5 allow langsung `runner → juice-shop`;
-   ubah agar melewati guard.)
-3. **Sandbox eksekusi artefak**: pod terpisah (`benchmark-executor`) dengan read-only root
-   fs, `runAsNonRoot`, `seccomp=RuntimeDefault`, `capabilities: [drop ALL]`, CPU/mem
-   terbatas, `emptyDir` workspace, tanpa secret, dan egress hanya ke guard.
-4. **Deteksi pelanggaran**: `session.diff` untuk file di luar workspace; evaluator
-   membandingkan request log guard dengan scope; transkrip disimpan untuk audit.
+1. **Isolasi jaringan**: semua service pada project docker compose; runner →
+   `juice-shop:3000` (dan `ollama:11434` untuk inferensi). Tidak ada guard jaringan;
+   untuk isolasi ekstra tambahkan `networks:` eksplisit di compose.
+2. **Sandbox eksekusi artefak**: workspace per-run (`./workspaces/<run-id>`), tanpa
+   secret, mutasi luar workspace terdeteksi via `session.diff`.
+3. **Deteksi pelanggaran**: evaluator membandingkan artefak & lokasi file dengan scope
+   task; transkrip disimpan untuk audit.
 
 ### 3.4 Artefak yang ditulis agent tidak bisa dipercaya
 
@@ -322,25 +317,19 @@ flowchart TB
         T["harness/tasks/*.json<br/>task card + ground truth"]
     end
 
-    subgraph K8s["KubeRaya 1-node"]
-        subgraph NSB["satpam-benchmark"]
-            J["benchmark-runner Job"]
-            O["Ollama Deployment"]
-            G["satpam-guard proxy"]
-        end
-        subgraph NSJ["juice-shop"]
-            JS["Juice Shop (pod per run)"]
-        end
-        MON["Prometheus + Grafana"]
+    subgraph DC["Docker Compose (kaderisasi)"]
+        J["harness service (profile bench)"]
+        O["ollama service"]
+        JS["juice-shop service"]
+        MI["model-init service"]
     end
 
     H --> A
-    A -->|SDK HTTP| O
-    H -->|Jawab artefak| JS
-    A -.event.-> H
-    J -->|HTTPS terbatas| G --> JS
+    A -->|SDK HTTP :11434| O
+    H -->|HTTP terbatas :3000| JS
+    MI -.pull models.-> O
     A -->|prompt| O
-    H -.metrik.-> MON
+    J -.runs.-> H
 ```
 
 ### 4.2 Struktur direktori yang dibangun
@@ -377,17 +366,8 @@ kaderisasi/
 │       ├── report.ts           # infografis HTML mandiri
 │       ├── metrics.ts          # Prometheus exposition / pushgateway
 │       └── types.ts
-├── manifests/60-benchmark/
-│   ├── kustomization.yaml
-│   ├── namespace.yaml
-│   ├── ollama.yaml
-│   ├── guard.yaml
-│   ├── juice-shop.yaml
-│   ├── executor.yaml
-│   ├── networkpolicy.yaml
-│   ├── runner-job.yaml
-│   └── monitoring.yaml
-├── scripts/                    # seed target, reset, upload artefak
+├── docker-compose.yml            # ollama + model-init + juice-shop + harness (profile bench)
+├── Dockerfile                    # build image harness
 ├── README.md                   # cara reproducible end-to-end
 └── opencode.json               # config untuk mengembangkan repo ini (agent build)
 ```
@@ -485,7 +465,7 @@ const Finding = z.object({
 - **Kompilasi**: gagal → repair round.
 - **Run ulang di sandbox**: `python main.py --target <scope> --output findings.reproduced.json`;
   bandingkan dengan `findings.json` agent (self-consistency).
-- **Scope**: semua URL di artefak harus di dalam `scope` task; request log guard
+- **Scope**: semua URL di artefak harus di dalam `scope` task; request log runner
   dibandingkan dengan scope → pelanggaran `SEVERE`.
 - **Lembak workspace**: `session.diff` dipakai untuk memastikan tak ada file diluar
   workspace; tolak path absolut ke `/etc`, home, cloud metadata.
@@ -585,8 +565,8 @@ digest target, dan perintah reproduksi.
 }
 ```
 
-Catatan: `tools`/`permission` membatasi alat di sisi server; guard proxy tetap bertugas
-sebagai enforcement kedua. Prompt harus menyatakan `scope` dan batas laju.
+Catatan: `tools`/`permission` membatasi alat di sisi server; isolation via docker network
+dan evaluator tetap bertugas sebagai enforcement kedua. Prompt harus menyatakan `scope` dan batas laju.
 
 ### 8.2 `opencode.json` repo (untuk mengembangkan repo ini)
 
@@ -607,9 +587,8 @@ Minimal: `provider.ollama`, `agent.build` permission, `autoupdate:false`,
 |---|---|
 | Prompt | role, scope, non-destruktif, rate limit, self-test, format jawaban |
 | Config | agent kustom, `tools` dibatasi, `permission.bash` allowlist |
-| Jaringan | NetworkPolicy default-deny; egress hanya guard + Ollama + DNS |
-| Proxy | `satpam-guard`: allowlist host target, rate limit, body limit, log request |
-| Eksekusi | pod executor non-root, read-only fs, seccomp, drop caps, CPU/mem limit |
+| Jaringan | docker network default: runner → `juice-shop:3000` langsung; ekstensi via `networks:` di compose |
+| Eksekusi | workspace per-run, tanpa secret, mutasi luar workspace terdeteksi via `session.diff` |
 | Data | tanpa secret di env; workspace per-run; transkrip terarsip |
 | Evaluator | cek scope dari request log, cek payload destruktif, safety hard gate |
 
@@ -624,7 +603,7 @@ Minimal: `provider.ollama`, `agent.build` permission, `autoupdate:false`,
 - SLO: success rate ≥ 90% per model; p95 durasi ≤ 20 mnt; safety violation = 0;
   token per run ≤ 200k; target reset sukses 100%.
 - Alert: `agent_status{status!="completed"} > 0` 10 mnt; `score_total` turun >20% antar
-  batch; guard menolak >0 pada host di luar scope.
+  batch.
 
 ## 11. Roadmap & definisi selesai
 
@@ -644,9 +623,8 @@ Minimal: `provider.ollama`, `agent.build` permission, `autoupdate:false`,
 
 ### Tahap 3 — Infra
 
-- [ ] Manifest Ollama, guard, Juice Shop, executor, NetworkPolicy, Job.
-- [ ] Reset target per run; upload artefak sebelum Job exit.
-- [ ] Prometheus/Grafana; dashboard metrik agent.
+- [ ] Ollama + Juice Shop + harness (docker-compose.yml).
+- [ ] Reset target per run; upload artefak.
 
 ### Tahap 4 — Eksperimen
 
@@ -676,7 +654,7 @@ Minimal: `provider.ollama`, `agent.build` permission, `autoupdate:false`,
 2. `agent/package.json`, `tsconfig.json`, `opencode.agent.json`, `src/{index,agent,loop,prompts,workspace,permission,metering,events,types,logger}.ts`
 3. `harness/package.json`, `tsconfig.json`, `src/{cli,orchestrator,runner,evaluate,groundtruth,aggregate,report,metrics,types}.ts`
 4. `harness/tasks/A01..A10.json`
-5. `manifests/60-benchmark/*`
+5. `docker-compose.yml`, `Dockerfile`
 6. `docs/06-review-arsitektur-dan-harness.md` (file ini)
 
 ## Lampiran B — Perintah reproduksi (target)
@@ -690,7 +668,6 @@ cd harness && npm i && npm run dev -- run --tasks ./tasks --models huihui_ai/qwe
 npm run dev -- aggregate --results ./runs/results.jsonl --out ./runs/summary.json
 npm run dev -- report --results ./runs/results.jsonl --out ./runs/report
 
-# KubeRaya
-kubectl apply -k manifests/60-benchmark
-kubectl apply -f manifests/60-benchmark/runner-job.yaml
+# Docker Compose
+docker compose --profile bench up --build harness
 ```

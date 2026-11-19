@@ -73,7 +73,7 @@ npm test
 ```bash
 npx tsx agent/src/index.ts run \
   --task harness/tasks/A05.json \
-  --workspace-root ./runs/workspaces \
+  --workspace-root ./workspaces \
   --model ollama/huihui_ai/qwen3.5-abliterated:4B \
   --ollama-base-url http://127.0.0.1:11434/v1 \
   --out ./runs/single-run.json
@@ -98,7 +98,7 @@ npx tsx harness/src/index.ts run \
   --seed 42 \
   --out ./runs \
   --ollama-base-url http://127.0.0.1:11434/v1 \
-  --workspace-root ./runs/workspaces
+  --workspace-root ./workspaces
 ```
 
 Atau lewat root script:
@@ -129,22 +129,21 @@ runs/
 ├── summary.json
 ├── metrics.txt
 ├── report/{index.html,summary.json}
-├── workspaces/<run-id>/{main.py,findings.json,requirements.txt,README.md,task.agent.json}
-├── transcripts/<run-id>.json
 └── <model>/<task>/<rep>/{run.json,evaluation.json,task.agent.json}
+
+workspaces/<run-id>/{main.py,findings.json,requirements.txt,README.md,task.agent.json}
+transcripts/<run-id>.json
 ```
 
 `run.json` ditulis **harness** dari `RunResult` yang dikembalikan agent, bukan oleh LLM. `task.agent.json` sudah dibersihkan dari ground truth.
 
-## Kubernetes (KubeRaya)
+## Infrastruktur: Docker Compose
 
 ```bash
-docker build -t kaderisasi-harness:0.1.0 .
-kubectl apply -k manifests/60-benchmark
-kubectl apply -f manifests/60-benchmark/runner-job.yaml
+docker compose --profile bench up --build harness
 ```
 
-Manifest mencakup Ollama, Juice Shop, `satpam-guard` (proxy egress + rate limit + metrik), NetworkPolicy default-deny, ResourceQuota/LimitRange, Job, dan ServiceMonitor. Sebelum produksi: pin image Juice Shop **by digest**, ganti PVC `benchmark-results` dengan storage yang tersedia, dan pastikan target di-reset per run.
+`docker-compose.yml` menyediakan: **Ollama** (serving lokal; service `model-init` menarik model `huihui_ai/qwen3.5-abliterated:4B`, `qwen3:4b`, `qwen2.5-coder:3b`), **Juice Shop target** (`bkimminich/juice-shop:v17.1.0`, port 3000), dan **harness** (profile `bench`; jalannya `node dist/index.js run --tasks /app/harness/tasks --models huihui_ai/qwen3.5-abliterated:4B --runs 1 --target http://juice-shop:3000`). Artefak hasil run disimpan di `./runs` (`results.jsonl`, `summary.json`, `report/`, `transcripts/`, `workspaces/`). Sebelum produksi: pin image Juice Shop **by digest** dan pastikan target di-reset per run.
 
 ## Skor
 
