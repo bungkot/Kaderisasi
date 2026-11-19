@@ -4,6 +4,7 @@ dist/
 .runs/
 runs/
 workspaces/
+.ollama/
 .env
 .env.local
 *.tgz

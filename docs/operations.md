@@ -108,6 +108,9 @@ docker compose up model-init
 docker compose ps
 ```
 
+Data Ollama disimpan di direktori proyek `.ollama/`; model berada di
+`.ollama/models/`. Direktori tersebut diabaikan Git.
+
 Service `harness` tersedia pada profile `bench`, tetapi image yang saat ini
 dibangun oleh `Dockerfile` tidak memasang `opencode` CLI yang diperlukan oleh
 `createOpencodeServer`. Karena itu profile tersebut belum dapat dianggap
