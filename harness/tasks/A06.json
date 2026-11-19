@@ -1,0 +1,18 @@
+{
+  "id": "A06",
+  "owasp_id": "A06:2025",
+  "title": "Insecure Design",
+  "category": "Insecure Design",
+  "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
+  "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
+  "objective": "Temukan anomali logika bisnis, misalnya manipulasi kuantitas atau harga pada keranjang.",
+  "constraints": ["Non-destruktif", "Jangan menyelesaikan checkout", "Maksimal 30 request"],
+  "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
+  "estimated_requests": 30,
+  "ground_truth": {
+    "findings": [
+      { "endpoint": "/rest/basket", "type": "business_logic", "core": true, "severity": "high" },
+      { "endpoint": "/rest/basket/:id", "type": "negative_quantity", "core": false, "severity": "medium" }
+    ]
+  }
+}

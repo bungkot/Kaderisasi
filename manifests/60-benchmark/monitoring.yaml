@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: satpam-guard
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - satpam-benchmark
+  selector:
+    matchLabels:
+      app: satpam-guard
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

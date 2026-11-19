@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: benchmark-runner
+  namespace: satpam-benchmark
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: benchmark-executor
+  namespace: satpam-benchmark
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: benchmark-quota
+  namespace: satpam-benchmark
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 10Gi
+    limits.cpu: "8"
+    limits.memory: 14Gi
+    pods: "20"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: benchmark-limits
+  namespace: satpam-benchmark
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 200m
+        memory: 256Mi

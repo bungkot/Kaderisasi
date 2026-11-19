@@ -1,0 +1,75 @@
+name: kaderisasi
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kaderisasi-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_CONTEXT_LENGTH: "32768"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  model-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "ollama pull huihui_ai/qwen3.5-abliterated:4B && ollama pull qwen3:4b && ollama pull qwen2.5-coder:3b"
+    restart: "no"
+
+  juice-shop:
+    image: bkimminich/juice-shop:v17.1.0
+    container_name: kaderisasi-juice-shop
+    ports:
+      - "3000:3000"
+
+  harness:
+    build: .
+    profiles: ["bench"]
+    depends_on:
+      model-init:
+        condition: service_completed_successfully
+      juice-shop:
+        condition: service_started
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434/v1
+      TARGET_URL: http://juice-shop:3000
+    volumes:
+      - ./runs:/data/runs
+    command:
+      - node
+      - dist/index.js
+      - run
+      - --tasks
+      - /app/harness/tasks
+      - --models
+      - huihui_ai/qwen3.5-abliterated:4B
+      - --runs
+      - "1"
+      - --target
+      - http://juice-shop:3000
+      - --seed
+      - "42"
+      - --out
+      - /data/runs
+      - --workspace-root
+      - /data/runs/workspaces
+      - --ollama-base-url
+      - http://ollama:11434/v1
+      - --timeout-ms
+      - "900000"
+
+volumes:
+  ollama:

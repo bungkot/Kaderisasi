@@ -1,0 +1,19 @@
+{
+  "id": "A05",
+  "owasp_id": "A05:2025",
+  "title": "Injection",
+  "category": "Injection",
+  "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
+  "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
+  "objective": "Buktikan SQL injection pada pencarian produk atau reflected XSS pada form login.",
+  "constraints": ["Non-destruktif", "Dilarang DROP/DELETE", "Maksimal 50 request"],
+  "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
+  "estimated_requests": 50,
+  "ground_truth": {
+    "findings": [
+      { "endpoint": "/rest/products/search", "type": "sqli", "core": true, "severity": "critical", "payload": "' OR '1'='1" },
+      { "endpoint": "/rest/user/login", "type": "xss", "core": false, "severity": "medium" }
+    ],
+    "notes": "Payload SQLi harus mengembalikan lebih banyak produk dari baseline."
+  }
+}

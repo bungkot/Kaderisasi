@@ -1,0 +1,23 @@
+{
+  "name": "agentic-pentest-benchmark",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Coding agentic loop (TypeScript + OpenCode SDK + Ollama) dan harness benchmark OWASP Top 10:2025",
+  "workspaces": [
+    "shared",
+    "agent",
+    "harness"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace shared && npm run build --workspace agent && npm run build --workspace harness",
+    "typecheck": "npm run build --workspace shared && npm run build --workspace agent && npm run typecheck --workspace agent && npm run typecheck --workspace harness",
+    "test": "npm run build --workspace shared && npm run build --workspace agent && npm run test --workspace shared && npm run test --workspace agent && npm run test --workspace harness",
+    "dev:agent": "npm run dev --workspace agent --",
+    "dev:harness": "npm run dev --workspace harness --",
+    "bench": "npm run dev --workspace harness -- run",
+    "report": "npm run dev --workspace harness -- report"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

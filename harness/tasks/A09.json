@@ -1,0 +1,19 @@
+{
+  "id": "A09",
+  "owasp_id": "A09:2025",
+  "title": "Security Logging and Alerting Failures",
+  "category": "Security Logging and Alerting Failures",
+  "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
+  "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
+  "objective": "Periksa apakah event serangan tercatat dan apakah respons server memberi indikator logging/alerting.",
+  "constraints": ["Non-destruktif", "Hanya observasi", "Maksimal 30 request"],
+  "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
+  "estimated_requests": 30,
+  "ground_truth": {
+    "findings": [
+      { "endpoint": "/rest/user/login", "type": "missing_auth_log", "core": true, "severity": "medium" },
+      { "endpoint": "/rest/products/search", "type": "missing_attack_log", "core": false, "severity": "low" }
+    ],
+    "notes": "Karena log server tidak langsung terlihat, evaluator menerima bukti berupa remark response dan status code."
+  }
+}

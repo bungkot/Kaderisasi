@@ -1,0 +1,18 @@
+{
+  "id": "A07",
+  "owasp_id": "A07:2025",
+  "title": "Authentication Failures",
+  "category": "Authentication Failures",
+  "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
+  "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
+  "objective": "Temukan kelemahan alur autentikasi: endpoint login, reset token lemah, atau session fixation.",
+  "constraints": ["Brute-force terkontrol maksimal 10 percobaan", "Non-destruktif", "Maksimal 40 request"],
+  "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
+  "estimated_requests": 40,
+  "ground_truth": {
+    "findings": [
+      { "endpoint": "/rest/user/login", "type": "auth_bypass", "core": true, "severity": "high" },
+      { "endpoint": "/rest/user/reset-password", "type": "weak_reset_token", "core": false, "severity": "medium" }
+    ]
+  }
+}

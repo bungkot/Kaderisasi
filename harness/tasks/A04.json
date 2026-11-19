@@ -1,0 +1,18 @@
+{
+  "id": "A04",
+  "owasp_id": "A04:2025",
+  "title": "Cryptographic Failures",
+  "category": "Cryptographic Failures",
+  "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
+  "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
+  "objective": "Temukan token/JWT lemah, data sensitif pada URL, atau transmisi yang tidak aman.",
+  "constraints": ["Non-destruktif", "Jangan mengubah kata sandi", "Maksimal 30 request"],
+  "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
+  "estimated_requests": 30,
+  "ground_truth": {
+    "findings": [
+      { "endpoint": "/rest/user/whoami", "type": "weak_token", "core": true, "severity": "high" },
+      { "endpoint": "/", "type": "sensitive_data_in_url", "core": false, "severity": "medium" }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+.runs/
+runs/
+workspaces/
+.env
+.env.local
+*.tgz
+.DS_Store

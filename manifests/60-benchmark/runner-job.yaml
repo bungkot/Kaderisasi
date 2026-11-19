@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: benchmark-runner
+  namespace: satpam-benchmark
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: benchmark-runner
+    spec:
+      restartPolicy: Never
+      serviceAccountName: benchmark-runner
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: harness
+          image: kaderisasi-harness:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/index.js", "run"]
+          args:
+            - "--tasks"
+            - "/app/harness/tasks"
+            - "--models"
+            - "huihui_ai/qwen3.5-abliterated:4B,qwen3:4b,qwen2.5-coder:3b"
+            - "--runs"
+            - "10"
+            - "--target"
+            - "http://juice-shop.juice-shop.svc.cluster.local:3000"
+            - "--seed"
+            - "42"
+            - "--out"
+            - "/data/runs"
+            - "--workspace-root"
+            - "/data/runs/workspaces"
+            - "--ollama-base-url"
+            - "http://ollama.satpam-benchmark.svc.cluster.local:11434/v1"
+            - "--timeout-ms"
+            - "900000"
+          env:
+            - name: HTTP_PROXY
+              value: http://satpam-guard.satpam-benchmark.svc.cluster.local:8080
+            - name: HTTPS_PROXY
+              value: http://satpam-guard.satpam-benchmark.svc.cluster.local:8080
+            - name: NO_PROXY
+              value: ollama.satpam-benchmark.svc.cluster.local,localhost,127.0.0.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+          volumeMounts:
+            - name: results
+              mountPath: /data
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: benchmark-results

@@ -155,21 +155,24 @@ Contoh `opencode.json` (atau `OPENCODE_CONFIG_CONTENT`):
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Ollama (KubeRaya)",
-      "options": { "baseURL": "http://ollama.satpam-system.svc.cluster.local:11434/v1" },
+      "options": { "baseURL": "http://ollama.satpam-benchmark.svc.cluster.local:11434/v1" },
       "models": {
-        "qwen2.5-coder:1.5b": { "name": "Qwen2.5 Coder 1.5B", "toolcall": true },
-        "qwen2.5-coder:3b":  { "name": "Qwen2.5 Coder 3B",  "toolcall": true },
-        "llama3.2:3b":        { "name": "Llama 3.2 3B",       "toolcall": true }
+        "huihui_ai/qwen3.5-abliterated:4B":        { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
+        "qwen3:4b":          { "name": "Qwen3 4B",          "tool_call": true },
+        "qwen2.5-coder:3b":  { "name": "Qwen2.5 Coder 3B",  "tool_call": true }
       }
     }
   }
 }
 ```
 
-Baseline pemilihan model pada perangkat tanpa GPU:
-- `qwen2.5-coder:1.5b` — sangat ringan, kualitas minim;
-- `qwen2.5-coder:3b` — titik tengah (rekomendasi pertama);
-- `llama3.2:3b` — basis pembanding generalist.
+Baseline pemilihan model pada perangkat tanpa GPU (target ukuran ±4GB):
+- `huihui_ai/qwen3.5-abliterated:4B` — **rekomendasi utama** (3,3GB); varian uncensored (abliterated) dari Qwen3.5 4B dengan tools + thinking + vision, konteks 256K; tool calling bisa diverifikasi lewat `agent/src/index.ts toolcheck`;
+- `qwen3:4b` — fallback 2,5GB dengan tool calling native, lebih lambat di CPU;
+- `qwen2.5-coder:3b` — baseline coding 1,9GB, tool-calling kurang andal;
+- hindari `qwen2.5-coder:7b` (4,7GB) untuk agent loop: sering mengeluarkan tool call sebagai teks biasa, sehingga OpenCode tidak mengeksekusinya.
+
+Set `OLLAMA_CONTEXT_LENGTH=32768` agar prompt + tool result tidak terpotong.
 
 ## 7. Observability agent (SRE)
 

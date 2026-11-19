@@ -27,8 +27,9 @@ status pada evidence map, atau bangun artefaknya.
 
 Temuan teknis yang harus diperbaiki sebelum menulis kode:
 
-1. **Contoh kode SDK di docs/02 salah** pada 4 titik (akses `.data`, key `toolcall`,
-   polling status). Jika disalin mentah, `sessionID` akan `undefined`.
+1. **Contoh kode SDK di docs/02 perlu sedikit koreksi**: akses `.data` sebenarnya benar
+   (default `responseStyle: "fields"`), tetapi key `"toolcall"` salah (harus `tool_call`),
+   dan `as never` sebaiknya `as Config`. Polling boleh, tapi SSE lebih baik.
 2. **"Agentic loop" belum ada**: docs/02 §2.1 menggambarkan satu `promptAsync` lalu
    polling sampai `idle`. Itu *one-shot generation*, bukan loop. Belum ada verifikasi
    artefak, perbaikan (repair), watchdog langkah, atau penanganan permission headless.
@@ -78,12 +79,12 @@ dan ketegasan beberapa definisi (§7).
 | `createOpencodeServer({ port: 4096, config })` | `ServerOptions { hostname?, port?, signal?, timeout?, config? }` | ✅ |
 | `config: {...} as never` | `config?: Config` (tiped) | ⚠️ ganti `as Config` |
 | `client.session.create({ query:{directory}, body:{title} })` | `SessionCreateData` persis seperti itu | ✅ |
-| `(sess as any).data?.id` | mengembalikan `Session` **langsung** → `sess.id` | ❌ |
+| `(sess as any).data?.id` | default `responseStyle: "fields"` → `sess.data.id` benar; hindari `any`, pakai helper `unwrap` | ⚠️ |
 | `session.promptAsync({ path:{id}, body:{ model, agent, parts } })` | `SessionPromptAsyncData` persis | ✅ |
 | `client.session.status({query:{directory}})` | `GET /session/status` → `{ [sessionID]: SessionStatus }` | ✅ |
-| `st = r?.data?.[sessionID]` | `st = r?.[sessionID]` | ❌ |
+| `st = r?.data?.[sessionID]` | benar untuk `responseStyle` default | ✅ |
 | `client.session.messages({path:{id}})` | `GET /session/{id}/message` → `Array<{ info, parts }>` | ✅ |
-| `for (const {info} of msgs.data ?? [])` | `for (const {info} of msgs ?? [])` | ❌ |
+| `for (const {info} of msgs.data ?? [])` | benar untuk `responseStyle` default | ✅ |
 | `info.tokens.input + info.tokens.output` | `AssistantMessage.tokens.{input,output,reasoning,cache}` | ✅ |
 | biaya | `AssistantMessage.cost` | ✅ (tapi lihat §8.3) |
 | `agent: "build"` | `SessionPromptData.body.agent` | ✅ |
@@ -104,12 +105,20 @@ const server = await createOpencodeServer({
 })
 const client = createOpencodeClient({ baseUrl: server.url })
 
+// Helper: responseStyle default adalah "fields", jadi hasil selalu { data, error, request, response }.
+// Menaruh responseStyle: "data" di createOpencodeClient TIDAK mengubah tipe generik method.
+function unwrap<T>(result: { data: T | undefined; error?: unknown }): T {
+  if (result.error) throw new Error(JSON.stringify(result.error))
+  if (result.data === undefined) throw new Error("empty response")
+  return result.data
+}
+
 // 1) session
-const sess = await client.session.create({
+const sessionResult = await client.session.create({
   query: { directory: workspace },
   body: { title: runId },
 })
-const sessionID = sess.id // bukan sess.data.id
+const sessionID = unwrap(sessionResult).id
 
 // 2) prompt asinkron
 await client.session.promptAsync({
@@ -125,13 +134,14 @@ await client.session.promptAsync({
 const { stream } = await client.event.subscribe()
 for await (const ev of stream) {
   if (ev.type === "session.idle" && ev.properties.sessionID === sessionID) break
-  if (ev.type === "session.error") { /* catat error */ }
-  if (ev.type === "permission.updated") { /* kebijakan permission, §6.3 */ }
+  if (ev.type === "permission.updated") {
+    // balas via client.postSessionIdPermissionsPermissionId(...)
+  }
 }
 
 // 4) usage
-const msgs = await client.session.messages({ path: { id: sessionID } })
-for (const { info } of msgs ?? []) {
+const msgResult = await client.session.messages({ path: { id: sessionID } })
+for (const { info } of unwrap(msgResult)) {
   if (info.role === "assistant") {
     tokens += info.tokens.input + info.tokens.output + info.tokens.reasoning
     cost += info.cost
@@ -139,11 +149,17 @@ for (const { info } of msgs ?? []) {
 }
 ```
 
-Catatan: `event.subscribe()` mengembalikan `{ stream: AsyncGenerator }`; tiap event
-adalah union `Event` (`session.idle`, `message.updated`, `message.part.updated`,
-`file.edited`, `todo.updated`, `permission.updated`, `session.error`, `session.diff`,
-`server.connected`, dst). Ini menggantikan polling dan memberi sinyal timeout yang
-lebih responsif. Pertahankan polling ringan sebagai fallback bila SSE terputus.
+Catatan penting: `createOpencodeClient({ responseStyle: "data", throwOnError: true })`
+berubah pada **runtime**, tetapi tipe generik method tetap default `"fields"`, sehingga
+`tsc` tetap mengira hasilnya `{ data, error, ... }`. Gunakan default `"fields"` + helper
+`unwrap` seperti di atas (ini yang dipakai di `agent/src/agent.ts`), atau kirim opsi
+`responseStyle: "data"` per-request bila ingin tipe langsung.
+
+`event.subscribe()` mengembalikan `{ stream: AsyncGenerator }`; tiap event adalah union
+`Event` (`session.idle`, `message.updated`, `message.part.updated`, `file.edited`,
+`todo.updated`, `permission.updated`, `session.error`, `session.diff`, dst). Ini
+menggantikan polling dan memberi sinyal timeout yang lebih responsif. Pertahankan
+polling ringan sebagai fallback bila SSE terputus.
 
 ### 2.3 Konfigurasi provider Ollama
 
@@ -158,9 +174,9 @@ docs/02 §6 hampir benar, kecuali key model. Bentuk `ProviderConfig` yang valid:
       "name": "Ollama (KubeRaya)",
       "options": { "baseURL": "http://ollama.satpam-benchmark.svc.cluster.local:11434/v1" },
       "models": {
-        "qwen2.5-coder:1.5b": { "name": "Qwen2.5 Coder 1.5B", "tool_call": true },
-        "qwen2.5-coder:3b":  { "name": "Qwen2.5 Coder 3B",  "tool_call": true },
-        "llama3.2:3b":        { "name": "Llama 3.2 3B",       "tool_call": true }
+        "huihui_ai/qwen3.5-abliterated:4B":        { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
+        "qwen3:4b":          { "name": "Qwen3 4B",          "tool_call": true },
+        "qwen2.5-coder:3b":  { "name": "Qwen2.5 Coder 3B",  "tool_call": true }
       }
     }
   }
@@ -482,7 +498,7 @@ const Finding = z.object({
 ```bash
 npm run dev -- run \
   --tasks ./tasks \
-  --models qwen2.5-coder:1.5b,qwen2.5-coder:3b,llama3.2:3b \
+  --models huihui_ai/qwen3.5-abliterated:4B,qwen3:4b,qwen2.5-coder:3b \
   --runs 10 --target http://juice-shop.juice-shop.svc:3000 \
   --seed 42 --out ./runs
 ```
@@ -531,17 +547,17 @@ digest target, dan perintah reproduksi.
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": false,
   "share": "disabled",
-  "model": "ollama/qwen2.5-coder:3b",
-  "small_model": "ollama/qwen2.5-coder:1.5b",
+  "model": "ollama/huihui_ai/qwen3.5-abliterated:4B",
+  "small_model": "ollama/qwen3:4b",
   "disabled_providers": ["anthropic", "openai", "google", "github-copilot"],
   "provider": {
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
       "options": { "baseURL": "${OLLAMA_BASE_URL}" },
       "models": {
-        "qwen2.5-coder:1.5b": { "name": "Qwen2.5 Coder 1.5B", "tool_call": true },
-        "qwen2.5-coder:3b":  { "name": "Qwen2.5 Coder 3B",  "tool_call": true },
-        "llama3.2:3b":        { "name": "Llama 3.2 3B",       "tool_call": true }
+        "huihui_ai/qwen3.5-abliterated:4B":        { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
+        "qwen3:4b":          { "name": "Qwen3 4B",          "tool_call": true },
+        "qwen2.5-coder:3b":  { "name": "Qwen2.5 Coder 3B",  "tool_call": true }
       }
     }
   },
@@ -669,7 +685,7 @@ Minimal: `provider.ollama`, `agent.build` permission, `autoupdate:false`,
 # lokal
 cd agent && npm i && npm run dev -- --task ../harness/tasks/A05.json \
   --workspace ../runs/ws --out ../runs/run.json
-cd harness && npm i && npm run dev -- run --tasks ./tasks --models qwen2.5-coder:3b \
+cd harness && npm i && npm run dev -- run --tasks ./tasks --models huihui_ai/qwen3.5-abliterated:4B,qwen3:4b,qwen2.5-coder:3b \
   --runs 10 --target http://127.0.0.1:3000 --seed 42 --out ./runs
 npm run dev -- aggregate --results ./runs/results.jsonl --out ./runs/summary.json
 npm run dev -- report --results ./runs/results.jsonl --out ./runs/report

@@ -1,0 +1,18 @@
+{
+  "id": "A10",
+  "owasp_id": "A10:2025",
+  "title": "Mishandling of Exceptional Conditions",
+  "category": "Mishandling of Exceptional Conditions",
+  "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
+  "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
+  "objective": "Temukan input ekstrem yang memicu error bocor informasi, stack trace, atau perilaku tak terduga.",
+  "constraints": ["Non-destruktif", "Tanpa payload DoS", "Maksimal 30 request"],
+  "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
+  "estimated_requests": 30,
+  "ground_truth": {
+    "findings": [
+      { "endpoint": "/rest/products/search", "type": "error_info_leak", "core": true, "severity": "medium" },
+      { "endpoint": "/api-docs", "type": "unexpected_response", "core": false, "severity": "low" }
+    ]
+  }
+}

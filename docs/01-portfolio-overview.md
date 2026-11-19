@@ -29,13 +29,13 @@ Untuk 10 task (A01–A10) × ≥3 model × n≥5 run, agent menerima task card d
 
 | Klaim kemampuan | Bukti |
 |---|---|
-| Merancang agent loop otonom | `agent/src/agent.ts`, transcript per run |
-| Prompt engineering & safety | `agent/src/prompts.ts` |
-| Integrasi SDK/model | `agent/opencode.json.example`, `docs/02` |
-| Evaluasi ilmiah | `docs/03-benchmark-methodology.md`, `harness/src/evaluate.ts` |
-| Kubernetes | `manifests/**` (Ollama, target, network policy, monitoring) |
-| SRE/observability | `docs/04-infra-sre-kuberaya.md`, metrik `agent_*`, dashboard |
-| Reprodusibilitas | perintah di `README.md`, artefak `results.jsonl` |
+| Merancang agent loop otonom | `agent/src/agent.ts`, `agent/src/loop.ts`, `agent/src/events.ts`, transcript per run |
+| Prompt engineering & safety | `agent/src/prompts.ts`, `agent/src/permission.ts` |
+| Integrasi SDK/model | `agent/src/permission.ts` (`buildAgentConfig`), `agent/opencode.agent.json`, `opencode.json` |
+| Evaluasi ilmiah | `docs/03-benchmark-methodology.md`, `harness/src/evaluate.ts`, `harness/src/aggregate.ts` |
+| Kubernetes | `manifests/60-benchmark/**` (Ollama, guard, target, NetworkPolicy, monitoring), `scripts/guard.py` |
+| SRE/observability | `docs/04-infra-sre-kuberaya.md`, `harness/src/metrics.ts`, metrik `agent_*` |
+| Reprodusibilitas | perintah di `README.md`, artefak `results.jsonl`, `harness/src/report.ts` |
 
 ## 5. Matriks skill yang ditunjukkan
 
@@ -56,8 +56,8 @@ Untuk 10 task (A01–A10) × ≥3 model × n≥5 run, agent menerima task card d
 | Tahap | Status |
 |---|---|
 | 1. Agent scaffold + SDK | ✅ |
-| 2. Harness + 10 task | 🚧 |
-| 3. Ollama di KubeRaya | 📝 manifest |
+| 2. Harness + 10 task | ✅ |
+| 3. Ollama di KubeRaya | ✅ manifest (perlu deploy) |
 | 4. Eksperimen & hasil | ⏳ |
 | 5. Infografis publik | ⏳ |
 

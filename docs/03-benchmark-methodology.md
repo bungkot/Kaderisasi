@@ -7,7 +7,7 @@ Dokumen ini adalah inti ilmiah portfolio: bagaimana **keberhasilan coding agent*
 | Elemen | Definisi |
 |---|---|
 | **Hipotesis** | Agent berbasis LLM lokal dapat menghasilkan proyek pentest Python yang benar & reproduktif untuk sebagian kategori OWASP 2025 |
-| **Variabel independen** | Model (`qwen2.5-coder:1.5b`, `3b`, `llama3.2:3b`), task category |
+| **Variabel independen** | Model (`huihui_ai/qwen3.5-abliterated:4B`, `qwen3:4b`, `qwen2.5-coder:3b`), task category |
 | **Variabel dependen** | Skor total (0–100) + sub-skor + metrik efisiensi |
 | **Kontrol** | Prompt identik, target identik, tool set sama, `temperature=0` (bila ada), timeout sama, n-run ≥ 5 |
 | **Randomisasi** | Urutan task diacak per model; workspace baru tiap run |

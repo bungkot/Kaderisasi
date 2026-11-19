@@ -1,0 +1,63 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": false,
+  "share": "disabled",
+  "model": "ollama/huihui_ai/qwen3.5-abliterated:4B",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama",
+      "options": { "baseURL": "http://127.0.0.1:11434/v1" },
+      "models": {
+        "huihui_ai/qwen3.5-abliterated:4B": { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
+        "qwen3:4b": { "name": "Qwen3 4B", "tool_call": true },
+        "qwen2.5-coder:3b": { "name": "Qwen2.5 Coder 3B", "tool_call": true }
+      }
+    }
+  },
+  "agent": {
+    "pentest-builder": {
+      "mode": "primary",
+      "description": "Builds a reproducible, non-destructive penetration-testing script for one OWASP Top 10:2025 category",
+      "maxSteps": 60,
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "glob": true,
+        "grep": true,
+        "list": true,
+        "webfetch": false,
+        "websearch": false,
+        "task": false,
+        "todowrite": false
+      },
+      "permission": {
+        "edit": "allow",
+        "webfetch": "deny",
+        "doom_loop": "deny",
+        "external_directory": "deny",
+        "bash": {
+          "*": "deny",
+          "python*": "allow",
+          "python3*": "allow",
+          "pip*": "allow",
+          "ruff*": "allow",
+          "ls*": "allow",
+          "cat*": "allow",
+          "head*": "allow",
+          "tail*": "allow",
+          "grep*": "allow",
+          "find*": "allow",
+          "mkdir*": "allow",
+          "curl*": "allow",
+          "echo*": "allow",
+          "cd*": "allow",
+          "wc*": "allow",
+          "jq*": "allow"
+        }
+      }
+    }
+  }
+}

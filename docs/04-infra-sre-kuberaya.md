@@ -53,7 +53,7 @@ flowchart TB
 ### 4.1 Ollama serving
 
 - `Deployment` image `ollama/ollama` stabil, `containerPort: 11434`.
-- `initContainer` menarik model coding (`qwen2.5-coder:3b`, `qwen2.5-coder:1.5b`, `llama3.2:3b`) agar run berikutnya cepat.
+- `initContainer`/`postStart` menarik model (`huihui_ai/qwen3.5-abliterated:4B`, `qwen3:4b`, `qwen2.5-coder:3b`) agar run berikutnya cepat.
 - `Service` `ollama.satpam-benchmark.svc.cluster.local` tipe ClusterIP.
 - **Tanpa GPU**: saturasi CPU tinggi; batasi konkurensi runner (1 run pada satu waktu per model) dan naikkan `resources.requests`.
 - Kegagalan inferensi → runner mencatat `status=error`/`timeout`, bukan menyalahkan target.
