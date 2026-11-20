@@ -45,10 +45,21 @@ program
   .option("--workspace-root <dir>", "root workspace per run", "./workspaces")
   .option("--timeout-ms <ms>", "timeout per run", Number, AGENT_DEFAULTS.timeoutMs)
   .action(async (opts: unknown) => {
-    const o = opts as BenchOptions & { models: string }
+    const o = opts as Omit<BenchOptions, "tasksDir" | "outDir" | "models"> & {
+      models: string
+      tasks: string
+      out: string
+    }
     const options: BenchOptions = {
-      ...o,
+      tasksDir: o.tasks,
+      outDir: o.out,
       models: o.models.split(",").map((model) => model.trim()).filter(Boolean),
+      runs: o.runs,
+      target: o.target,
+      seed: o.seed,
+      ollamaBaseUrl: o.ollamaBaseUrl,
+      workspaceRoot: o.workspaceRoot,
+      timeoutMs: o.timeoutMs,
     }
     const summary = await runBenchmark(options)
     await buildReport(join(options.outDir, "results.jsonl"), join(options.outDir, "report"), options.seed, options.target)

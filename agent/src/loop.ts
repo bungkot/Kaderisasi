@@ -1,5 +1,5 @@
 import { mkdir } from "node:fs/promises"
-import { dirname, join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import type { AgentOptions, AgentTaskCard, RunResult, RunStatus } from "@kaderisasi/shared"
 import { sha256, writeJson } from "@kaderisasi/shared"
 import { OpenCodeAgent } from "./agent.js"
@@ -16,7 +16,7 @@ export async function executeTask(
   options: AgentOptions,
   logger: Logger,
 ): Promise<RunResult> {
-  const workspace = join(options.workspaceRoot, options.runId)
+  const workspace = resolve(options.workspaceRoot, options.runId)
   await mkdir(workspace, { recursive: true })
   await writeJson(join(workspace, "task.agent.json"), task)
 

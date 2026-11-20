@@ -50,6 +50,7 @@ services:
     volumes:
       - ./runs:/data/runs
       - ./workspaces:/app/harness/workspaces
+      - ${OPENCODE_BIN:-/data/home/.opencode/bin/opencode}:/usr/local/bin/opencode:ro
     command:
       - node
       - dist/index.js
@@ -67,7 +68,7 @@ services:
       - --out
       - /data/runs
       - --workspace-root
-      - ./workspaces
+      - /app/harness/workspaces
       - --ollama-base-url
       - http://ollama:11434/v1
       - --timeout-ms
