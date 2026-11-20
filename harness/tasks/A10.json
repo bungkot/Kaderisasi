@@ -5,8 +5,8 @@
   "category": "Mishandling of Exceptional Conditions",
   "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
   "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
-  "objective": "Temukan input ekstrem yang memicu error bocor informasi, stack trace, atau perilaku tak terduga.",
-  "constraints": ["Non-destruktif", "Tanpa payload DoS", "Maksimal 30 request"],
+  "objective": "Find extreme inputs that trigger information-leaking errors, stack traces, or unexpected behavior.",
+  "constraints": ["Non-destructive", "No DoS payloads", "At most 30 requests"],
   "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
   "estimated_requests": 30,
   "ground_truth": {

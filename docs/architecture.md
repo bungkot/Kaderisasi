@@ -1,42 +1,42 @@
-# Arsitektur sistem
+# System architecture
 
-## Sasaran
+## Goals
 
-Sistem menjalankan satu coding agent per run. Agent menerima task card tanpa
-ground truth, membuat proyek Python di workspace run, lalu mengembalikan
-metadata eksekusi. Harness memvalidasi artefak, membandingkan temuan dengan
-ground truth privat, dan menyimpan hasil untuk analisis.
+The system runs one coding agent per run. The agent receives a task card without
+ground truth, creates a Python project in the run workspace, then returns
+execution metadata. The harness validates artifacts, compares findings against
+private ground truth, and stores results for analysis.
 
-## Batas workspace
+## Workspace boundaries
 
-| Workspace | Tanggung jawab |
+| Workspace | Responsibility |
 |---|---|
-| `shared/` | Tipe, skema Zod, konstanta, dan utilitas yang dipakai bersama |
-| `agent/` | OpenCode SDK, konfigurasi agent, prompt, event stream, lifecycle run, validasi workspace, dan usage |
-| `harness/` | Task loader, orkestrasi, evaluasi, agregasi statistik, metrik, dan laporan |
+| `shared/` | Types, Zod schemas, constants, and utilities shared across workspaces |
+| `agent/` | OpenCode V2 client, agent configuration, prompts, event stream, run lifecycle, workspace validation, and usage |
+| `harness/` | Task loader, orchestration, evaluation, statistics aggregation, metrics, and reports |
 
-Kode TypeScript berada di `src/` workspace masing-masing. `harness/tasks/`
-menyimpan task card beserta ground truth; `shared/src/util.ts` menyediakan
-`stripGroundTruth` yang dipakai runner sebelum menyerahkan task ke agent.
+TypeScript code resides in each workspace's `src/`. `harness/tasks/` stores task
+cards along with ground truth; `shared/src/util.ts` provides `stripGroundTruth`,
+which the runner uses before handing the task to the agent.
 
-## Alur satu run
+## Single-run flow
 
 ```text
 harness/tasks/*.json
-       │ load + validasi skema
+       │ load + schema validation
        ▼
 harness runner ── stripGroundTruth + target/scope
        │
        ▼
-agent ── prompt ── OpenCode server/SDK ── Ollama
+agent ── prompt ── OpenCode 2 server / V2 client ── Ollama
        │                    │
-       │                    ├─ tools bekerja pada workspace run
-       │                    └─ SSE + fallback polling status
+       │                    ├─ tools operate on the run workspace
+       │                    └─ SSE event stream + experimental session wait
        ▼
 main.py, findings.json, requirements.txt, README.md
        │
-       ├─ cek berkas, skema findings, kompilasi main.py
-       ├─ repair prompt sampai batas konfigurasi
+       ├─ file checks, findings schema, main.py compilation
+       ├─ repair prompts up to the configured limit
        └─ transcript, usage, session diff
        ▼
 harness ── run.json + evaluation.json + results.jsonl
@@ -44,34 +44,34 @@ harness ── run.json + evaluation.json + results.jsonl
        └─ summary.json + metrics.txt + report/index.html
 ```
 
-`agent/src/loop.ts` mengatur satu run dan repair. `agent/src/agent.ts`
-membungkus SDK dan event stream. `harness/src/runner.ts` adalah batas antara
-task rahasia dan input agent; `harness/src/evaluate.ts` serta
-`harness/src/aggregate.ts` menangani penilaian dan agregasi.
+`agent/src/loop.ts` manages a single run and repair. `agent/src/agent.ts` wraps
+the V2 client and event stream. `harness/src/runner.ts` is the boundary between the
+secret task and agent input; `harness/src/evaluate.ts` and
+`harness/src/aggregate.ts` handle scoring and aggregation.
 
-## Kontrak data
+## Data contract
 
-- Task input tervalidasi menggunakan `TaskDefinitionSchema`.
-- Agent menerima `AgentTaskCard`, tidak menerima `ground_truth`.
-- Temuan keluaran mengikuti `FindingsSchema`.
-- `RunResult` berisi status, usage, durasi, diff, error, dan path artefak.
-- Harness menyimpan hasil per run dan satu baris `{ run, evaluation }` ke
+- Task input is validated using `TaskDefinitionSchema`.
+- The agent receives `AgentTaskCard`, not `ground_truth`.
+- Output findings follow `FindingsSchema`.
+- `RunResult` contains status, usage, duration, diff, errors, and artifact paths.
+- The harness stores per-run results and one `{ run, evaluation }` line in
   `results.jsonl`.
 
-Skema dan tipe bersama berada di `shared/src/schema.ts` dan
-`shared/src/types.ts`. Struktur file keluaran dan cara membuat laporan dijelaskan
-di [Pelaporan](./reporting.md).
+Shared schemas and types reside in `shared/src/schema.ts` and
+`shared/src/types.ts`. The output file structure and how to generate reports are
+described in [Reporting](./reporting.md).
 
-## Keputusan arsitektur yang perlu dipertahankan
+## Architectural decisions to preserve
 
-1. Agent hanya menangani satu run; evaluasi dan agregasi tetap tanggung jawab
-   harness.
-2. Ground truth tidak boleh masuk ke prompt, transcript input, atau artefak
-   workspace agent.
-3. Identitas hasil eksperimen berasal dari `RunResult` dan evaluasi harness,
-   bukan dari klaim teks model.
-4. Konfigurasi OpenCode benchmark dibangun per run oleh
-   `agent/src/permission.ts`; `agent/opencode.agent.json` adalah konfigurasi
-   pendamping, bukan sumber konfigurasi dinamis.
-5. Semua target harus berada dalam scope lab yang diotorisasi. Prompt dan
-   permission OpenCode bukan pengganti isolasi jaringan atau sandbox.
+1. The agent handles only a single run; evaluation and aggregation remain the
+   harness's responsibility.
+2. Ground truth must not enter the prompt, input transcript, or agent workspace
+   artifacts.
+3. The identity of experiment results comes from `RunResult` and harness
+   evaluation, not from model text claims.
+4. The benchmark OpenCode configuration is built per run by
+   `agent/src/permission.ts`; `agent/opencode.agent.json` is a companion
+   configuration, not the source of dynamic configuration.
+5. All targets must be within an authorized lab scope. Prompts and OpenCode
+   permissions are not a substitute for network isolation or a sandbox.

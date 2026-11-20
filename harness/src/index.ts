@@ -30,7 +30,7 @@ async function buildReport(results: string, outDir: string, seed: number, target
 }
 
 const program = new Command()
-program.name("kaderisasi-harness").description("Benchmark harness untuk coding agent OpenCode + Ollama")
+program.name("kaderisasi-harness").description("Benchmark harness for the OpenCode + Ollama coding agent")
 
 program
   .command("run")
@@ -91,12 +91,12 @@ program
   .action(async (opts: unknown) => {
     const o = opts as { results: string; out: string; seed: number; target: string }
     const summary = await buildReport(o.results, o.out, o.seed, o.target)
-    process.stdout.write(`Laporan ditulis: ${join(o.out, "index.html")} (${summary.totalRuns} run)\n`)
+    process.stdout.write(`Report written: ${join(o.out, "index.html")} (${summary.totalRuns} runs)\n`)
   })
 
 program
   .command("verify")
-  .description("Validasi semua task card dan ground truth")
+  .description("Validate all task cards and ground truth")
   .requiredOption("--tasks <dir>", "direktori task JSON")
   .action(async (opts: unknown) => {
     const o = opts as { tasks: string }

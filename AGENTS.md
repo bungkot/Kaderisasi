@@ -1,69 +1,70 @@
-# Instruksi coding agent repository
+# Repository coding agent instructions
 
-## Tujuan dan batas
+## Purpose and scope
 
-Repository ini berisi coding agent berbasis TypeScript, OpenCode SDK, dan
-Ollama untuk menyusun proyek skrip Python bagi task OWASP Top 10:2025 di
-workspace eksperimen, beserta harness evaluasinya.
+This repository contains a TypeScript coding agent built on the OpenCode V2
+client and Ollama. It generates Python script projects for OWASP Top 10:2025
+tasks in experimental workspaces, together with an evaluation harness.
 
-Semua perubahan atau contoh pengujian harus mempertahankan batas penggunaan
-yang terotorisasi: target lab milik sendiri atau target yang secara eksplisit
-diizinkan, cakupan sempit, dan aktivitas non-destruktif. Jangan menambahkan
-fitur untuk DoS, kredensial harvesting, persistensi, penghindaran deteksi,
-eksfiltrasi, atau eksekusi di luar workspace. Jangan menyatakan prompt atau
-konfigurasi tool sebagai sandbox jaringan/OS.
+Every change and test example must preserve the authorized-use boundary: lab
+targets you own or targets you are explicitly allowed to test, narrow scope,
+and non-destructive activity. Do not add features for DoS, credential
+harvesting, persistence, detection evasion, exfiltration, or execution outside
+the workspace. Never describe prompts or tool configuration as a network/OS
+sandbox.
 
-Ground truth di `harness/tasks/*.json` hanya untuk evaluator. Jangan masukkan
-ground truth ke prompt atau file input agent; gunakan `stripGroundTruth`.
-Perubahan pada perilaku safety harus mempertahankan hard gate yang ada dan
-mendokumentasikan batas yang belum ditegakkan.
+Ground truth in `harness/tasks/*.json` is for the evaluator only. Never place
+ground truth in prompts or agent input files; use `stripGroundTruth`. Changes
+to safety behavior must preserve the existing hard gates and document any
+limits that are not enforced.
 
-## Struktur dan tanggung jawab
+## Structure and responsibilities
 
-- Semua kode TypeScript berada di `src/` workspace terkait.
-- `shared/`: tipe, skema, konstanta, utilitas lintas-workspace.
-- `agent/`: OpenCode SDK, konfigurasi agent, prompt, siklus hidup satu run,
-  validasi workspace, event, dan metering.
-- `harness/`: pemuatan task, orkestrasi, evaluasi, agregasi, metrik, dan laporan.
-- Harness adalah sumber metadata benchmark seperti `run.json`,
-  `evaluation.json`, `results.jsonl`, dan `summary.json`.
+- All TypeScript code lives in the `src/` directory of its workspace.
+- `shared/`: cross-workspace types, schemas, constants, and utilities.
+- `agent/`: OpenCode V2 client, agent configuration, prompts, single-run
+  lifecycle, workspace validation, events, and metering.
+- `harness/`: task loading, orchestration, evaluation, aggregation, metrics,
+  and reports.
+- The harness is the source of benchmark metadata such as `run.json`,
+  `evaluation.json`, `results.jsonl`, and `summary.json`.
 
-Dokumentasi resmi repository dimulai dari `docs/README.md`. Perbarui dokumen
-terkait bila kontrak, CLI, skema, atau output berubah; hapus klaim desain lama
-yang tidak sesuai implementasi.
+Official documentation starts at `docs/README.md`. Update related documents
+when contracts, CLI behavior, schemas, or outputs change; remove stale design
+claims that no longer match the implementation.
 
-## Gaya
+## Style
 
-- TypeScript ESM, NodeNext, strict, dan `verbatimModuleSyntax`.
-- Gunakan `import type` untuk impor yang hanya digunakan sebagai tipe.
-- Identifier kode berbahasa Inggris; dokumentasi dan laporan berbahasa Indonesia.
-- Ikuti format dan pola yang sudah ada; jangan menambah komentar kecuali
-  diperlukan untuk menjelaskan logika yang tidak jelas.
-- Jangan menyimpan secret, token, kredensial, atau data sensitif di repository,
-  transcript, maupun log.
+- TypeScript ESM, NodeNext, strict mode, and `verbatimModuleSyntax`.
+- Use `import type` for imports used only as types.
+- Code identifiers are in English; documentation and reports are in English.
+- Follow existing formatting and patterns; do not add comments unless they
+  explain non-obvious logic.
+- Do not store secrets, tokens, credentials, or sensitive data in the
+  repository, transcripts, or logs.
 
-## OpenCode SDK
+## OpenCode client
 
-- Repository memakai klien V2 `@opencode/client` dengan server OpenCode 2;
-  `client.event.subscribe` adalah async iterable SSE. Klien embedded
-  `@opencode/sdk` tidak dipakai karena butuh Node 24+ (`await using`).
-- Respons klien V2 langsung berisi nilai, tanpa pembungkus `.data`.
-- Benchmark memakai agent `pentest-builder`, bukan agent `build`.
-- Konfigurasi per run dibangun di `agent/src/permission.ts` dalam bentuk V2
-  (`providers`, `agents`, `policies`, `permissions`) dan menyertakan
-  `body.reasoning_effort: "none"`; bila static `agent/opencode.agent.json`
-  berubah, pastikan tidak mengklaim bahwa file itu menggantikan konfigurasi
-  runtime.
+- The repository uses the V2 client `@opencode/client` with an OpenCode 2
+  server; `client.event.subscribe` is an SSE async iterable. The embedded
+  `@opencode/sdk` client is not used because it requires Node 24+
+  (`await using`).
+- V2 client responses contain values directly, without a `.data` wrapper.
+- The benchmark uses the `pentest-builder` agent, not the `build` agent.
+- Per-run configuration is built in `agent/src/permission.ts` using the V2
+  shape (`providers`, `agents`, `policies`, `permissions`) and includes
+  `body.reasoning_effort: "none"`. If `agent/opencode.agent.json` changes, do
+  not claim that this static file replaces the runtime configuration.
 
-## Verifikasi sebelum selesai
+## Verification before finishing
 
-Jalankan keduanya untuk perubahan kode:
+Run both commands for code changes:
 
 ```bash
 npm run typecheck
 npm test
 ```
 
-Jalankan `npm run build` sebelum membangun image Docker. Untuk perubahan
-dokumentasi saja, pastikan tautan dan perintah konsisten dengan CLI serta
-implementasi saat ini.
+Run `npm run build` before building a Docker image. For documentation-only
+changes, verify that links and commands remain consistent with the current CLI
+and implementation.

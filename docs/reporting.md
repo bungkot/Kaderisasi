@@ -1,8 +1,8 @@
-# Artefak dan pelaporan
+# Artifacts and reporting
 
-## Keluaran benchmark
+## Benchmark output
 
-Untuk setiap model, task, dan replikasi, harness menyimpan:
+For each model, task, and replication, the harness stores:
 
 ```text
 runs/
@@ -27,17 +27,17 @@ workspaces/<run-id>/
 transcripts/<run-id>.json
 ```
 
-Model path disanitasi untuk nama direktori. `results.jsonl` berisi satu objek
-`{ "run": ..., "evaluation": ... }` per baris. Harness menulis `run.json`,
-`evaluation.json`, salinan task agent, agregat, dan metrik. Agent menyimpan
-transcript dan artefak workspace. Dalam mode CLI agent tunggal, opsi `--out`
-menyimpan `RunResult` tanpa evaluasi.
+Model paths are sanitized for directory names. `results.jsonl` contains one
+`{ "run": ..., "evaluation": ... }` object per line. The harness writes
+`run.json`, `evaluation.json`, a copy of the agent task, aggregates, and metrics.
+The agent stores the transcript and workspace artifacts. In single-agent CLI
+mode, the `--out` option stores the `RunResult` without evaluation.
 
-`task.agent.json` tidak boleh mengandung ground truth. Perlakukan transcript dan
-artefak sebagai data eksperimen yang dapat memuat URL atau input target; tinjau
-sebelum membagikannya.
+`task.agent.json` must not contain ground truth. Treat transcripts and artifacts
+as experiment data that may contain URLs or target input; review them before
+sharing.
 
-## Membuat ulang agregat dan HTML
+## Regenerating aggregates and HTML
 
 ```bash
 npx tsx harness/src/index.ts aggregate \
@@ -53,17 +53,17 @@ npx tsx harness/src/index.ts report \
   --target http://127.0.0.1:3000
 ```
 
-Laporan HTML dibuat mandiri tanpa CDN. Implementasi saat ini menampilkan kartu
-ringkasan, tabel per model, heatmap task × model, bar skor dengan CI, hitungan
-kelas error, perbandingan model, limitasi, dan perintah reproduksi. Ia tidak
-membuat radar chart atau melakukan review manusia.
+The HTML report is self-contained without a CDN. The current implementation
+displays summary cards, a per-model table, a task × model heatmap, score bars
+with CI, error class counts, model comparisons, limitations, and reproduction
+commands. It does not generate a radar chart or perform human review.
 
-## Interpretasi
+## Interpretation
 
-- CI dan p-value berasal dari implementasi statistik di `harness/src/aggregate.ts`;
-  catatan metode disertakan pada `summary.json`.
-- Evidence dan safety adalah heuristik, bukan sertifikasi keamanan.
-- Skor harus dibaca bersama jumlah run, status error, task, serta batas validitas
-  di [Evaluasi](./evaluation.md).
-- Jangan menyajikan laporan sebagai hasil OWASP resmi atau hasil pemindaian
-  sistem produksi.
+- CI and p-value come from the statistical implementation in
+  `harness/src/aggregate.ts`; method notes are included in `summary.json`.
+- Evidence and safety are heuristics, not a security certification.
+- Scores must be read together with the number of runs, error status, tasks, and
+  validity limits in [Evaluation](./evaluation.md).
+- Do not present the report as an official OWASP result or as a result of
+  scanning a production system.

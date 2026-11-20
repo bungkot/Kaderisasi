@@ -5,8 +5,8 @@
   "category": "Authentication Failures",
   "target": "http://juice-shop.juice-shop.svc.cluster.local:3000",
   "scope": ["http://juice-shop.juice-shop.svc.cluster.local:3000"],
-  "objective": "Temukan kelemahan alur autentikasi: endpoint login, reset token lemah, atau session fixation.",
-  "constraints": ["Brute-force terkontrol maksimal 10 percobaan", "Non-destruktif", "Maksimal 40 request"],
+  "objective": "Find weaknesses in the authentication flow: login endpoint, weak reset tokens, or session fixation.",
+  "constraints": ["Controlled brute-force with at most 10 attempts", "Non-destructive", "At most 40 requests"],
   "deliverables": ["main.py", "findings.json", "requirements.txt", "README.md"],
   "estimated_requests": 40,
   "ground_truth": {

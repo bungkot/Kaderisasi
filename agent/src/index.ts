@@ -90,8 +90,8 @@ program
 
 program
   .command("toolcheck")
-  .description("Verifikasi apakah model benar-benar memanggil tool via OpenCode")
-  .option("--model <provider/model>", "model yang diuji", `ollama/${MODELS.primary}`)
+  .description("Verify whether the model actually invokes a tool through OpenCode")
+  .option("--model <provider/model>", "model under test", `ollama/${MODELS.primary}`)
   .option("--ollama-base-url <url>", "Ollama base URL", "http://127.0.0.1:11434/v1")
   .option("--timeout-ms <ms>", "timeout", Number, 120_000)
   .action(async (opts: unknown) => {

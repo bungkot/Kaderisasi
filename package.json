@@ -2,7 +2,7 @@
   "name": "agentic-pentest-benchmark",
   "private": true,
   "version": "0.1.0",
-  "description": "Coding agentic loop (TypeScript + OpenCode SDK + Ollama) dan harness benchmark OWASP Top 10:2025",
+  "description": "Coding agent loop (TypeScript + OpenCode V2 client + Ollama) and OWASP Top 10:2025 benchmark harness",
   "workspaces": [
     "shared",
     "agent",

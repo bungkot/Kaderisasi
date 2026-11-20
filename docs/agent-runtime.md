@@ -1,92 +1,93 @@
-# Agent runtime dan kontrak workspace
+# Agent runtime and workspace contract
 
 ## Runtime
 
-Agent dijalankan dari `agent/src/index.ts` dan menggunakan klien V2
-`@opencode/client` untuk berbicara dengan server OpenCode 2. Setiap run
-men-spawn `opencode serve` dengan `HOME`, `OPENCODE_CONFIG_CONTENT`, dan
-`OPENCODE_PASSWORD` yang terisolasi. Klien embedded `@opencode/sdk` tidak
-dipakai karena membutuhkan Node 24+ (`await using`), sementara repository ini
-berjalan di Node 22. Config per run dibangun oleh `buildAgentConfig` di
-`agent/src/permission.ts`. Nama agent benchmark default adalah `pentest-builder`;
-model dipasok melalui provider OpenCode Ollama.
+The agent is run from `agent/src/index.ts` and uses the V2 client
+`@opencode/client` to communicate with an OpenCode 2 server. Each run spawns
+`opencode serve` with an isolated `HOME`, `OPENCODE_CONFIG_CONTENT`, and
+`OPENCODE_PASSWORD`. The embedded `@opencode/sdk` client is not used because it
+requires Node 24+ (`await using`), while this repository runs on Node 22. The
+per-run config is built by `buildAgentConfig` in `agent/src/permission.ts`. The
+default benchmark agent name is `pentest-builder`; the model is supplied through
+the OpenCode Ollama provider.
 
-Config memakai bentuk native V2: `providers`, `agents`, `policies`, dan
-`permissions`. Provider Ollama memuat
-`body.reasoning_effort: "none"` agar reasoning Qwen3 dimatikan lewat API
-OpenAI-compatible; definisi tool tetap dikirim. Field `body` hanya bekerja pada
-bentuk `providers` (V2), bukan `provider` (V1).
+The config uses the native V2 form: `providers`, `agents`, `policies`, and
+`permissions`. The Ollama provider carries
+`body.reasoning_effort: "none"` to disable Qwen3 reasoning via the
+OpenAI-compatible API; tool definitions are still sent. The `body` field only
+works with the `providers` form (V2), not `provider` (V1).
 
-Alur runtime:
+Runtime flow:
 
-1. Buat direktori unik di bawah `workspaceRoot` dan simpan task card yang sudah
-   dibersihkan.
-2. Buat session OpenCode dengan direktori tersebut sebagai location.
-3. Kirim prompt, lalu tunggu `experimental.session.wait` dan event `session.idle`
-   atau `session.execution.failed`.
-4. Saat session idle, validasi artefak dan `findings.json`; `main.py` diperiksa
-   dengan `python3 -m py_compile`.
-5. Jika validasi gagal, kirim error validasi sebagai repair prompt sampai
-   `maxRepairRounds` tercapai.
-6. Simpan transcript, usage, dan session diff; perubahan di luar workspace
-   membuat status run menjadi error.
+1. Create a unique directory under `workspaceRoot` and store the sanitized task
+   card.
+2. Create an OpenCode session with that directory as the location.
+3. Send the prompt, then wait for `experimental.session.wait` and the
+   `session.idle` or `session.execution.failed` event.
+4. When the session is idle, validate the artifacts and `findings.json`;
+   `main.py` is checked with `python3 -m py_compile`.
+5. If validation fails, send the validation error as a repair prompt until
+   `maxRepairRounds` is reached.
+6. Save the transcript, usage, and session diff; changes outside the workspace
+   set the run status to error.
 
-Default yang didefinisikan di `shared/src/constants.ts`: timeout 15 menit,
-maksimal 60 langkah, dan 3 putaran repair. Timeout dapat dioverride melalui
-CLI. Tool call dihitung setelah session selesai; nilai `maxToolCalls` yang ada
-di opsi belum diterapkan sebagai batas runtime. Nilai konfigurasi yang
-diterapkan pun bukan jaminan bahwa setiap operasi model aman.
+The defaults defined in `shared/src/constants.ts` are: a 15-minute timeout, a
+maximum of 60 steps, and 3 repair rounds. The timeout can be overridden through
+the CLI. Tool calls are counted after the session finishes; the `maxToolCalls`
+value present in the options is not yet applied as a runtime limit. Even the
+applied config values are not a guarantee that every model operation is safe.
 
-## Artefak yang wajib ada
+## Required artifacts
 
-Setiap workspace run harus berisi:
+Each run workspace must contain:
 
-| File | Kontrak |
+| File | Contract |
 |---|---|
-| `main.py` | CLI Python yang menerima `--target` dan `--output` |
-| `findings.json` | Array temuan yang sesuai `FindingsSchema` |
-| `requirements.txt` | Daftar dependency proyek |
-| `README.md` | Petunjuk penggunaan dan penjelasan singkat |
+| `main.py` | Python CLI that accepts `--target` and `--output` |
+| `findings.json` | Array of findings conforming to `FindingsSchema` |
+| `requirements.txt` | List of project dependencies |
+| `README.md` | Usage instructions and a brief explanation |
 
-File tambahan diperbolehkan. Validator saat ini mengecek keberadaan empat file,
-parse JSON dan skema findings, serta kompilasi sintaks `main.py`. Validator
-tidak menjalankan linter, tidak mengaudit dependency, dan tidak membuktikan
-bahwa temuan benar atau skrip aman.
+Additional files are allowed. The validator currently checks for the presence
+of the four files, JSON parsing and the findings schema, and syntax compilation
+of `main.py`. The validator does not run a linter, does not audit dependencies,
+and does not prove that the findings are correct or that the script is safe.
 
-Satu temuan memiliki `id`, `title`, `owasp_id`, `severity`, `endpoint`,
-`method`, `evidence`, `confidence`, dan field opsional `payload` serta
-`remediation`. Bentuk kanonis berada di `shared/src/schema.ts`.
+A finding has `id`, `title`, `owasp_id`, `severity`, `endpoint`, `method`,
+`evidence`, `confidence`, and the optional fields `payload` and `remediation`.
+The canonical form is in `shared/src/schema.ts`.
 
-## Batas keamanan dan otorisasi
+## Security and authorization limits
 
-- Gunakan hanya target lab yang dimiliki atau memiliki izin tertulis. Target
-  dan scope benchmark dibentuk dari URL target yang diberikan kepada runner.
-- Skrip yang dihasilkan dapat berisi request jaringan dan dapat dijalankan
-  melalui tool agent. Tinjau kode sebelum eksekusi di luar run lab terkendali.
-- Policy OpenCode membatasi tool dan pola perintah, tetapi bukan sandbox OS.
-  Beberapa perintah yang diizinkan, termasuk `curl`, dapat mengakses jaringan.
-- Pada V2, aksi `doom_loop` tidak lagi tersedia, sehingga pembatasan lama
-  `doom_loop: "deny"` tidak dapat diterapkan; `webfetch`, `websearch`, `subagent`,
-  `skill`, `question`, dan `external_directory` tetap ditolak lewat `permissions`.
-- Mati reasoning mengubah perilaku dan biaya model, tetapi tidak menjamin
-  keluaran bebas reasoning pada model atau runtime lain.
-- Pemeriksaan diff mendeteksi path file di luar workspace yang dilaporkan oleh
-  session; ini bukan pencegahan akses filesystem yang komprehensif.
-- Evaluator saat ini tidak memonitor seluruh HTTP request yang dibuat skrip,
-  sehingga tidak membuktikan bahwa setiap request tetap pada scope.
-- Jangan menaruh kredensial, data pribadi, atau secret di task, prompt,
-  workspace, transcript, maupun log. Jangan menguji dengan DoS atau perubahan
-  data destruktif.
+- Use only lab targets that you own or have written permission for. The
+  benchmark target and scope are formed from the target URL given to the runner.
+- The generated script may contain network requests and can be run through agent
+  tools. Review the code before executing it outside a controlled lab run.
+- OpenCode policy restricts tools and command patterns, but it is not an OS
+  sandbox. Some allowed commands, including `curl`, can access the network.
+- In V2, the `doom_loop` action is no longer available, so the old
+  `doom_loop: "deny"` restriction cannot be applied; `webfetch`, `websearch`, `subagent`,
+  `skill`, `question`, and `external_directory` are still denied through `permissions`.
+- Disabling reasoning changes model behavior and cost, but does not guarantee
+  reasoning-free output on other models or runtimes.
+- The diff check detects file paths outside the workspace reported by the
+  session; this is not comprehensive filesystem access prevention.
+- The evaluator currently does not monitor all HTTP requests made by the script,
+  so it does not prove that every request stays within scope.
+- Do not place credentials, personal data, or secrets in the task, prompt,
+  workspace, transcript, or logs. Do not test with DoS or destructive data
+  changes.
 
-Dengan demikian, implementasi saat ini cocok untuk eksperimen terkontrol pada
-lab lokal, bukan untuk mengklaim isolasi keamanan produksi.
+Accordingly, the current implementation is suitable for controlled experiments
+on a local lab, not for claiming production-grade security isolation.
 
-## Troubleshooting singkat
+## Brief troubleshooting
 
-- Jalankan `agent ... toolcheck` untuk memeriksa tool calling model sebelum
-  eksperimen.
-- Pastikan CLI `opencode`, Ollama, model yang dipilih, dan `python3` tersedia.
-- Periksa log terstruktur, `transcripts/<run-id>.json`, `run.json`, dan
-  `errors` jika status run bukan `completed`.
-- Perbaikan artefak hanya dilakukan sampai batas repair yang dikonfigurasi;
-  run gagal tetap disimpan oleh harness.
+- Run `agent ... toolcheck` to check the model's tool calling before
+  experimenting.
+- Ensure the `opencode` CLI, Ollama, the selected model, and `python3` are
+  available.
+- Check the structured logs, `transcripts/<run-id>.json`, `run.json`, and
+  `errors` if the run status is not `completed`.
+- Artifact repair is performed only up to the configured repair limit; failed
+  runs are still saved by the harness.

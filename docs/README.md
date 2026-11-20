@@ -1,38 +1,39 @@
-# Dokumentasi
+# Documentation
 
-Dokumentasi ini menjelaskan implementasi yang ada di repository, bukan blueprint
-untuk komponen yang belum dibuat. Mulai dari [arsitektur](./architecture.md),
-lalu gunakan panduan sesuai pekerjaan:
+This documentation describes the implementation present in the repository, not a
+blueprint for components that have not yet been built. Start with
+[architecture](./architecture.md), then use the guide appropriate to your work:
 
-| Dokumen | Tujuan |
+| Document | Purpose |
 |---|---|
-| [Arsitektur](./architecture.md) | Batas tanggung jawab workspace dan alur benchmark |
-| [Agent runtime](./agent-runtime.md) | Siklus agent, kontrak artefak, dan batas keamanan |
-| [Evaluasi](./evaluation.md) | Task OWASP, ground truth, skor, dan statistik |
-| [Operasi](./operations.md) | Prasyarat, perintah lokal, dan Docker Compose |
-| [Pelaporan](./reporting.md) | Artefak hasil dan laporan HTML |
+| [Architecture](./architecture.md) | Workspace responsibility boundaries and benchmark flow |
+| [Agent runtime](./agent-runtime.md) | Agent lifecycle, artifact contract, and safety boundaries |
+| [Evaluation](./evaluation.md) | OWASP tasks, ground truth, scores, and statistics |
+| [Operations](./operations.md) | Prerequisites, local commands, and Docker Compose |
+| [Reporting](./reporting.md) | Result artifacts and HTML reports |
 
-## Ruang lingkup
+## Scope
 
-Proyek ini mengevaluasi coding agent lokal berbasis TypeScript, OpenCode SDK,
-dan Ollama yang menyusun proyek skrip Python untuk task OWASP Top 10:2025 di
-workspace terpisah. Task saat ini menggunakan OWASP Juice Shop sebagai target
-lab. Ini bukan layanan pemindaian umum atau otorisasi untuk menguji sistem pihak
-lain. Jalankan hanya pada target yang dimiliki atau yang pengujiannya telah
-diizinkan secara eksplisit.
+This project evaluates a local coding agent based on TypeScript, the OpenCode
+V2 client, and Ollama that assembles a Python script project for OWASP Top
+10:2025 tasks in a separate workspace. The current task uses OWASP Juice Shop as the lab target.
+This is not a general scanning service or authorization to test third-party
+systems. Run it only against targets you own or whose testing has been explicitly
+authorized.
 
-## Status yang dapat diverifikasi
+## Verifiable status
 
-- Implementasi agent, harness, sepuluh task, agregasi, dan renderer laporan ada
-  di repository.
-- Docker Compose menyediakan Ollama, Juice Shop, dan runner benchmark opsional.
-- Runner Compose belum end-to-end runnable: image harness belum menyediakan
-  binary `opencode` yang diperlukan agent.
-- Evaluasi dan kontrol keselamatan saat ini berbasis validasi artefak serta
-  heuristik; batas jaringan dan eksekusi yang terisolasi belum ditegakkan oleh
-  repository.
-- Angka skor atau klaim performa hanya dapat dibuat setelah eksperimen
-  dijalankan dan artefak hasilnya ditinjau.
+- The agent, harness, ten tasks, aggregation, and report renderer implementations
+  are present in the repository.
+- Docker Compose provides Ollama, Juice Shop, and an optional benchmark runner.
+- The Compose runner mounts the host `opencode` binary via `OPENCODE_BIN` and
+  reaches the agent loop. Full 15-minute runs still time out on CPU-only 4B
+  inference, so no complete script has been produced yet.
+- Evaluation and safety controls are currently based on artifact validation and
+  heuristics; network boundaries and isolated execution are not yet enforced by
+  the repository.
+- Score figures or performance claims can only be made after experiments have
+  been run and their result artifacts reviewed.
 
-Lihat [README utama](../README.md) untuk quick start dan
-[instruksi pengembangan agent](../AGENTS.md) untuk konvensi repository.
+See the [main README](../README.md) for the quick start and the
+[agent development instructions](../AGENTS.md) for repository conventions.

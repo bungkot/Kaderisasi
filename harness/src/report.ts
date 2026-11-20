@@ -74,7 +74,7 @@ function renderComparisons(summary: Summary): string {
     const marker = comparison.significant ? " ✓" : ""
     return `<tr><td>${escapeHtml(comparison.a)}</td><td>${escapeHtml(comparison.b)}</td><td>${escapeHtml(comparison.taskId)}</td><td>${fixed(comparison.meanDiff)}</td><td>${p}${marker}</td></tr>`
   }).join("")
-  if (!rows) return "<p>Tidak ada pasangan model dengan cukup run untuk dibandingkan.</p>"
+  if (!rows) return "<p>No model pair has enough runs to compare.</p>"
   return `<table><thead><tr><th>A</th><th>B</th><th>Task</th><th>Δ mean</th><th>p (Holm)</th></tr></thead><tbody>${rows}</tbody></table>`
 }
 
@@ -92,50 +92,50 @@ code,pre{background:#181d33;border:1px solid #2a3154;border-radius:6px;padding:2
 @media(max-width:800px){.bar-row{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}}`
 
   return `<!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agentic Pentest Benchmark — Laporan</title>
+<title>Agentic Pentest Benchmark — Report</title>
 <style>${style}</style>
 </head>
 <body>
 <main>
 <h1>Agentic Pentest Benchmark</h1>
-<p class="muted">Coding agent TypeScript · OpenCode SDK · Ollama · OWASP Top 10:2025 — dibangun ${escapeHtml(summary.generatedAt)}</p>
-<p class="muted">Target: ${escapeHtml(summary.target || "—")} · Seed: ${summary.seed} · Ambang sukses: skor ≥ ${SCORING.successThreshold}</p>
+<p class="muted">Coding agent TypeScript · OpenCode V2 client · Ollama · OWASP Top 10:2025 — generated ${escapeHtml(summary.generatedAt)}</p>
+<p class="muted">Target: ${escapeHtml(summary.target || "—")} · Seed: ${summary.seed} · Success threshold: score ≥ ${SCORING.successThreshold}</p>
 
-<h2>Ringkasan</h2>
+<h2>Summary</h2>
 <div class="grid">${renderCards(summary)}</div>
 
-<h2>Per model</h2>
+<h2>By model</h2>
 ${renderModelTable(summary)}
 
-<h2>Heatmap task × model</h2>
+<h2>Task × model heatmap</h2>
 ${renderHeatmap(summary)}
 
-<h2>Rata-rata skor total + CI 95%</h2>
+<h2>Mean total score + 95% CI</h2>
 ${renderBars(summary)}
 
-<h2>Analisis kesalahan</h2>
+<h2>Error analysis</h2>
 ${renderErrors(summary)}
 
-<h2>Perbandingan model</h2>
+<h2>Model comparisons</h2>
 ${renderComparisons(summary)}
 
-<h2>Limitasi & integritas</h2>
+<h2>Limitations and integrity</h2>
 <ul>
-<li>Semua run disimpan, termasuk yang gagal; tidak ada cherry-picking.</li>
-<li>Ground truth tidak pernah dikirim ke agent (task card dibersihkan oleh harness).</li>
-<li>Evidence dinilai dengan heuristik deterministik, bukan review manusia; sub-skor evidence bersifat aproksimasi.</li>
-<li>Statistik memakai normal approximation untuk Wilcoxon dan bootstrap 1000 resample; n kecil mengurangi daya uji.</li>
+<li>All runs are retained, including failed ones; no cherry-picking.</li>
+<li>Ground truth is never sent to the agent (task cards are stripped by the harness).</li>
+<li>Evidence is scored with deterministic heuristics, not human review; the evidence subscore is an approximation.</li>
+<li>Statistics use a normal approximation for Wilcoxon and 1000 bootstrap resamples; small n reduces statistical power.</li>
 </ul>
 
-<h2>Cara reproduce</h2>
+<h2>Reproduction</h2>
 <pre>npm install
 npm run build
-npm run dev:harness -- run --tasks ./harness/tasks --models ollama/huihui_ai/qwen3.5-abliterated:4B --runs 5 --target &lt;url&gt; --seed 42 --out ./runs
-npm run dev:harness -- report --results ./runs/results.jsonl --out ./runs/report</pre>
+npx tsx harness/src/index.ts run --tasks ./harness/tasks --models ollama/huihui_ai/qwen3.5-abliterated:4B --runs 5 --target &lt;url&gt; --seed 42 --out ./runs
+npx tsx harness/src/index.ts report --results ./runs/results.jsonl --out ./runs/report</pre>
 
 <script type="application/json" id="benchmark-data">${embedded}</script>
 </main>

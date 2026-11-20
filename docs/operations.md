@@ -1,19 +1,19 @@
-# Operasi dan reproduksibilitas
+# Operations and reproducibility
 
-## Prasyarat
+## Prerequisites
 
-- Node.js 22 atau lebih baru dan npm.
-- `opencode` CLI yang dapat dipanggil dari `PATH` untuk menjalankan agent.
-- Ollama dengan model yang dipilih sudah tersedia.
-- Python 3 untuk validasi sintaks `main.py`.
-- Docker Compose hanya diperlukan untuk stack lokal yang disediakan proyek.
+- Node.js 22 or newer and npm.
+- The `opencode` CLI callable from `PATH` to run the agent.
+- Ollama with the selected model available.
+- Python 3 for syntax validation of `main.py`.
+- Docker Compose is only needed for the local stack provided by the project.
 
-Model aktif pada `shared/src/constants.ts` adalah
-`huihui_ai/qwen3.5-abliterated:4B`. Pastikan model mampu melakukan tool calling dengan
-perintah `toolcheck`; deklarasi `capabilities.tools` di config tidak menjamin
-kemampuan model.
+The active model in `shared/src/constants.ts` is
+`huihui_ai/qwen3.5-abliterated:4B`. Ensure the model is capable of tool calling
+with the `toolcheck` command; the `capabilities.tools` declaration in the config
+does not guarantee the model's ability.
 
-## Instalasi dan pemeriksaan
+## Installation and checks
 
 ```bash
 npm install
@@ -22,10 +22,10 @@ npm test
 npm run build
 ```
 
-Untuk perubahan kode, typecheck dan test adalah pemeriksaan wajib. Build juga
-dijalankan sebelum membangun image Docker.
+For code changes, typecheck and test are required checks. The build is also run
+before building a Docker image.
 
-## Verifikasi tool calling
+## Verifying tool calling
 
 ```bash
 npx tsx agent/src/index.ts toolcheck \
@@ -33,12 +33,12 @@ npx tsx agent/src/index.ts toolcheck \
   --ollama-base-url http://127.0.0.1:11434/v1
 ```
 
-Command mengembalikan `ok: true` jika tool call terdeteksi. Ini bukan tes
-keamanan atau akurasi model.
+The command returns `ok: true` if a tool call is detected. This is not a test of
+model security or accuracy.
 
-## Menjalankan satu task
+## Running a single task
 
-Jalankan target lab yang dikelola sendiri, misalnya Juice Shop lokal:
+Run a self-managed lab target, for example a local Juice Shop:
 
 ```bash
 npx tsx agent/src/index.ts run \
@@ -50,21 +50,21 @@ npx tsx agent/src/index.ts run \
   --out ./runs/single-run.json
 ```
 
-`--target` mengoverride target task dan membatasi field scope pada origin URL
-tersebut. Agent menghasilkan workspace di bawah `workspaces/`; file `--out`
-menyimpan hasil run, bukan evaluation harness.
+`--target` overrides the task target and restricts the scope field to that
+URL's origin. The agent produces a workspace under `workspaces/`; the `--out`
+file stores the run result, not the evaluation harness.
 
-Untuk meninjau konfigurasi yang dibangun per run:
+To review the config built per run:
 
 ```bash
 npx tsx agent/src/index.ts config --model ollama/huihui_ai/qwen3.5-abliterated:4B
 ```
 
-## Menjalankan benchmark
+## Running the benchmark
 
-Pastikan Ollama dan target lab dapat diakses dari proses harness. Nilai model
-harus menggunakan bentuk `ollama/<model-id>`; prefix provider diperlukan agar
-parser tidak salah menafsirkan ID model yang memiliki namespace.
+Ensure Ollama and the lab target are accessible from the harness process. The
+model value must use the form `ollama/<model-id>`; the provider prefix is needed
+so the parser does not misinterpret model IDs that have a namespace.
 
 ```bash
 npx tsx harness/src/index.ts verify --tasks ./harness/tasks
@@ -80,11 +80,11 @@ npx tsx harness/src/index.ts run \
   --workspace-root ./workspaces
 ```
 
-Nama model Hugging Face dengan namespace, jika digunakan, perlu ditulis
-`ollama/<namespace>/<model>:<tag>`. Sesuaikan daftar model dengan model yang
-benar-benar tersedia di Ollama.
+Namespaced Hugging Face model names, if used, must be written as
+`ollama/<namespace>/<model>:<tag>`. Adjust the model list to the models actually
+available in Ollama.
 
-Alternatif root script:
+Root script alternative:
 
 ```bash
 npm run dev:harness -- run --tasks ./tasks \
@@ -92,14 +92,14 @@ npm run dev:harness -- run --tasks ./tasks \
   --target http://127.0.0.1:3000
 ```
 
-Script workspace dijalankan dari direktori `harness/`; path relatif pada
-perintah tersebut relatif terhadap direktori itu.
+The workspace script runs from the `harness/` directory; relative paths in
+those commands are relative to that directory.
 
 ## Docker Compose
 
-`docker-compose.yml` mendefinisikan Ollama, proses `model-init`, Juice Shop
-v17.1.0, serta service `harness` di profile `bench`. Untuk memulai service
-dasar:
+`docker-compose.yml` defines Ollama, the `model-init` process, Juice Shop
+v17.1.0, and the `harness` service in the `bench` profile. To start the base
+services:
 
 ```bash
 docker compose up -d ollama juice-shop
@@ -107,14 +107,14 @@ docker compose up model-init
 docker compose ps
 ```
 
-Data Ollama disimpan di direktori proyek `.ollama/`; model berada di
-`.ollama/models/`. Direktori tersebut diabaikan Git.
+Ollama data is stored in the project's `.ollama/` directory; models are in
+`.ollama/models/`. These directories are ignored by Git.
 
-Service `harness` tersedia pada profile `bench`, tetapi image yang saat ini
-dibangun oleh `Dockerfile` tidak memasang `opencode` CLI yang diperlukan oleh
-`createOpencodeServer`. Karena itu profile tersebut belum dapat dianggap
-end-to-end runnable tanpa menyediakan CLI di image. Untuk benchmark lokal,
-jalankan harness dari host yang memiliki `opencode` di `PATH`:
+The `harness` service is available in the `bench` profile. The image built by
+the `Dockerfile` does not install the `opencode` CLI; instead, the host binary
+is mounted via `OPENCODE_BIN`, so the service is runnable. However, full
+15-minute runs timed out on CPU inference. For a local benchmark, run the
+harness from a host that has `opencode` on `PATH`:
 
 ```bash
 npx tsx harness/src/index.ts run \
@@ -125,19 +125,19 @@ npx tsx harness/src/index.ts run \
   --ollama-base-url http://127.0.0.1:11434/v1
 ```
 
-Stack ini konfigurasi development satu host, bukan isolasi jaringan yang
-terjamin. Port Ollama `11434` dan Juice Shop `3000` dipublikasikan ke host;
-image Ollama menggunakan tag `latest`; target tidak otomatis di-reset ke state
-awal untuk setiap run. Jangan mengekspos stack ke jaringan yang tidak tepercaya.
-Jika service `harness` dijalankan di container setelah CLI ditambahkan,
-verifikasi pula bahwa service dapat saling menjangkau melalui jaringan Compose
-dan volume output sesuai dengan konfigurasi run.
+This stack is a single-host development configuration, not guaranteed network
+isolation. Ollama port `11434` and Juice Shop port `3000` are published to the
+host; the Ollama image uses the `latest` tag; the target is not automatically
+reset to its initial state for each run. Do not expose the stack to untrusted
+networks. If the `harness` service is run in a container with the CLI provided,
+also verify that the services can reach each other over the Compose network and
+that the output volume matches the run configuration.
 
-## Seed, waktu, dan artefak
+## Seed, timing, and artifacts
 
-Catat `--seed`, daftar model, target, jumlah run, serta perubahan konfigurasi
-untuk setiap eksperimen. Seed mengatur urutan task dan bootstrap, tetapi tidak
-membuat inferensi model deterministik. Semua kegagalan harus dipertahankan dan
-dilaporkan bersama run sukses.
+Record the `--seed`, model list, target, number of runs, and configuration
+changes for each experiment. The seed controls task order and bootstrapping, but
+does not make model inference deterministic. All failures must be preserved and
+reported alongside successful runs.
 
-Struktur hasil benchmark dirangkum di [Pelaporan](./reporting.md).
+The benchmark result structure is summarized in [Pelaporan](./reporting.md).
