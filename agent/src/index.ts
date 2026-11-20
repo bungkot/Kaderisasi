@@ -34,7 +34,7 @@ program
   .requiredOption("--task <path>", "path to a task JSON file")
   .option("--target <url>", "override task target URL (for local lab)")
   .requiredOption("--workspace-root <dir>", "root directory for run workspaces")
-  .requiredOption("--model <provider/model>", "model, e.g. ollama/qwen2.5-coder:3b")
+  .requiredOption("--model <provider/model>", "model, e.g. ollama/huihui_ai/qwen3.5-abliterated:4B")
   .requiredOption("--ollama-base-url <url>", "Ollama OpenAI-compatible base URL")
   .requiredOption("--out <path>", "path to write run.json")
   .option("--agent <name>", "OpenCode agent name", AGENT_DEFAULTS.agent)

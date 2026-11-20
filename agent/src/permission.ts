@@ -42,8 +42,6 @@ const TOOLS: { [key: string]: boolean } = {
 export function buildAgentConfig(options: AgentOptions): Config {
   const labels: Record<string, string> = {
     [MODELS.primary]: "Qwen3.5 4B Abliterated (uncensored)",
-    [MODELS.fallback]: "Qwen3 4B",
-    [MODELS.codingBaseline]: "Qwen2.5 Coder 3B",
   }
   const models: Record<string, { name: string; tool_call: true }> = {}
   for (const id of MODELS.all) models[id] = { name: labels[id] ?? id, tool_call: true }

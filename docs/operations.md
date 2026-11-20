@@ -8,9 +8,8 @@
 - Python 3 untuk validasi sintaks `main.py`.
 - Docker Compose hanya diperlukan untuk stack lokal yang disediakan proyek.
 
-Model default pada `shared/src/constants.ts` adalah
-`huihui_ai/qwen3.5-abliterated:4B`, `qwen3:4b`, dan
-`qwen2.5-coder:3b`. Pastikan model mampu melakukan tool calling dengan
+Model aktif pada `shared/src/constants.ts` adalah
+`huihui_ai/qwen3.5-abliterated:4B`. Pastikan model mampu melakukan tool calling dengan
 perintah `toolcheck`; deklarasi `tool_call` di config tidak menjamin
 kemampuan model.
 
@@ -46,7 +45,7 @@ npx tsx agent/src/index.ts run \
   --task harness/tasks/A05.json \
   --target http://127.0.0.1:3000 \
   --workspace-root ./workspaces \
-  --model ollama/qwen3:4b \
+  --model ollama/huihui_ai/qwen3.5-abliterated:4B \
   --ollama-base-url http://127.0.0.1:11434/v1 \
   --out ./runs/single-run.json
 ```
@@ -58,7 +57,7 @@ menyimpan hasil run, bukan evaluation harness.
 Untuk meninjau konfigurasi yang dibangun per run:
 
 ```bash
-npx tsx agent/src/index.ts config --model ollama/qwen3:4b
+npx tsx agent/src/index.ts config --model ollama/huihui_ai/qwen3.5-abliterated:4B
 ```
 
 ## Menjalankan benchmark
@@ -72,7 +71,7 @@ npx tsx harness/src/index.ts verify --tasks ./harness/tasks
 
 npx tsx harness/src/index.ts run \
   --tasks ./harness/tasks \
-  --models ollama/qwen3:4b,ollama/qwen2.5-coder:3b \
+  --models ollama/huihui_ai/qwen3.5-abliterated:4B \
   --runs 5 \
   --target http://127.0.0.1:3000 \
   --seed 42 \
@@ -89,7 +88,7 @@ Alternatif root script:
 
 ```bash
 npm run dev:harness -- run --tasks ./tasks \
-  --models ollama/qwen3:4b --runs 1 \
+  --models ollama/huihui_ai/qwen3.5-abliterated:4B --runs 1 \
   --target http://127.0.0.1:3000
 ```
 
@@ -120,7 +119,7 @@ jalankan harness dari host yang memiliki `opencode` di `PATH`:
 ```bash
 npx tsx harness/src/index.ts run \
   --tasks ./harness/tasks \
-  --models ollama/qwen3:4b \
+  --models ollama/huihui_ai/qwen3.5-abliterated:4B \
   --runs 1 \
   --target http://127.0.0.1:3000 \
   --ollama-base-url http://127.0.0.1:11434/v1

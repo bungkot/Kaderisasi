@@ -9,9 +9,7 @@
       "name": "Ollama",
       "options": { "baseURL": "http://127.0.0.1:11434/v1" },
       "models": {
-        "huihui_ai/qwen3.5-abliterated:4B": { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true },
-        "qwen3:4b": { "name": "Qwen3 4B", "tool_call": true },
-        "qwen2.5-coder:3b": { "name": "Qwen2.5 Coder 3B", "tool_call": true }
+        "huihui_ai/qwen3.5-abliterated:4B": { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true }
       }
     }
   },

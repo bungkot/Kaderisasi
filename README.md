@@ -51,7 +51,7 @@ calling model sebelum run:
 
 ```bash
 npx tsx agent/src/index.ts toolcheck \
-  --model ollama/qwen3:4b \
+  --model ollama/huihui_ai/qwen3.5-abliterated:4B \
   --ollama-base-url http://127.0.0.1:11434/v1
 ```
 
@@ -77,7 +77,7 @@ npx tsx agent/src/index.ts run \
   --task harness/tasks/A05.json \
   --target http://127.0.0.1:3000 \
   --workspace-root ./workspaces \
-  --model ollama/qwen3:4b \
+  --model ollama/huihui_ai/qwen3.5-abliterated:4B \
   --ollama-base-url http://127.0.0.1:11434/v1 \
   --out ./runs/single-run.json
 ```
@@ -92,7 +92,7 @@ npx tsx harness/src/index.ts verify --tasks ./harness/tasks
 
 npx tsx harness/src/index.ts run \
   --tasks ./harness/tasks \
-  --models ollama/qwen3:4b,ollama/qwen2.5-coder:3b \
+  --models ollama/huihui_ai/qwen3.5-abliterated:4B \
   --runs 5 \
   --target http://127.0.0.1:3000 \
   --seed 42 \

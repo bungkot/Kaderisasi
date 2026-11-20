@@ -134,7 +134,7 @@ ${renderComparisons(summary)}
 <h2>Cara reproduce</h2>
 <pre>npm install
 npm run build
-npm run dev:harness -- run --tasks ./harness/tasks --models huihui_ai/qwen3.5-abliterated:4B,qwen3:4b,qwen2.5-coder:3b --runs 5 --target &lt;url&gt; --seed 42 --out ./runs
+npm run dev:harness -- run --tasks ./harness/tasks --models ollama/huihui_ai/qwen3.5-abliterated:4B --runs 5 --target &lt;url&gt; --seed 42 --out ./runs
 npm run dev:harness -- report --results ./runs/results.jsonl --out ./runs/report</pre>
 
 <script type="application/json" id="benchmark-data">${embedded}</script>

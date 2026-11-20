@@ -26,9 +26,7 @@ export const AGENT_DEFAULTS = {
 
 export const MODELS = {
   primary: "huihui_ai/qwen3.5-abliterated:4B",
-  fallback: "qwen3:4b",
-  codingBaseline: "qwen2.5-coder:3b",
-  all: ["huihui_ai/qwen3.5-abliterated:4B", "qwen3:4b", "qwen2.5-coder:3b"],
+  all: ["huihui_ai/qwen3.5-abliterated:4B"],
 } as const
 
 export const PATHS = {

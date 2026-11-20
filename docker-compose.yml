@@ -27,7 +27,7 @@ services:
       OLLAMA_HOST: http://ollama:11434
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - "ollama pull huihui_ai/qwen3.5-abliterated:4B && ollama pull qwen3:4b && ollama pull qwen2.5-coder:3b"
+      - "ollama pull huihui_ai/qwen3.5-abliterated:4B"
     restart: "no"
 
   juice-shop:
