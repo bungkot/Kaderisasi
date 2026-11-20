@@ -44,14 +44,16 @@ yang tidak sesuai implementasi.
 
 ## OpenCode SDK
 
-- Versi SDK saat ini memakai respons fields secara default; gunakan `.data` dan
-  helper `unwrap` di `agent/src/agent.ts`.
-- SSE (`client.event.subscribe`) adalah jalur utama progres; polling status
-  hanya fallback.
+- Repository memakai klien V2 `@opencode/client` dengan server OpenCode 2;
+  `client.event.subscribe` adalah async iterable SSE. Klien embedded
+  `@opencode/sdk` tidak dipakai karena butuh Node 24+ (`await using`).
+- Respons klien V2 langsung berisi nilai, tanpa pembungkus `.data`.
 - Benchmark memakai agent `pentest-builder`, bukan agent `build`.
-- Konfigurasi per run dibangun di `agent/src/permission.ts`; bila static
-  `agent/opencode.agent.json` berubah, pastikan tidak mengklaim bahwa file itu
-  menggantikan konfigurasi runtime.
+- Konfigurasi per run dibangun di `agent/src/permission.ts` dalam bentuk V2
+  (`providers`, `agents`, `policies`, `permissions`) dan menyertakan
+  `body.reasoning_effort: "none"`; bila static `agent/opencode.agent.json`
+  berubah, pastikan tidak mengklaim bahwa file itu menggantikan konfigurasi
+  runtime.
 
 ## Verifikasi sebelum selesai
 

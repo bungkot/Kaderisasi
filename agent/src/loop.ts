@@ -46,13 +46,13 @@ export async function executeTask(
 
   try {
     await agent.start(config)
-    const sessionID = await agent.createSession(workspace, options.runId)
+    const sessionID = await agent.createSession(workspace, options.runId, options.agent, options.model)
     let promptText = initialPrompt
     let validation: ValidationResult | null = null
 
     for (;;) {
       try {
-        await agent.prompt(sessionID, options.agent, options.model, promptText)
+        await agent.prompt(sessionID, promptText)
         run.requests += 1
         const outcome = await agent.waitForIdle(sessionID, Date.now() + options.timeoutMs)
         if (outcome === "timeout") {

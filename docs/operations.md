@@ -10,7 +10,7 @@
 
 Model aktif pada `shared/src/constants.ts` adalah
 `huihui_ai/qwen3.5-abliterated:4B`. Pastikan model mampu melakukan tool calling dengan
-perintah `toolcheck`; deklarasi `tool_call` di config tidak menjamin
+perintah `toolcheck`; deklarasi `capabilities.tools` di config tidak menjamin
 kemampuan model.
 
 ## Instalasi dan pemeriksaan

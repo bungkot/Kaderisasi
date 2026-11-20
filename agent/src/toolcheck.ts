@@ -35,24 +35,22 @@ export async function checkToolCalling(options: AgentOptions, logger: Logger): P
   try {
     await agent.start(config)
     agent.handlePermissions(() => "once")
-    const sessionID = await agent.createSession(workspace, "toolcheck")
+    const sessionID = await agent.createSession(workspace, "toolcheck", options.agent, options.model)
     await agent.promptAndWait(
       sessionID,
-      options.agent,
-      options.model,
       "/no_think\nRun this exact shell command once: echo TOOL_OK\nDo not run it again. After the tool result, reply only DONE.",
       options.timeoutMs,
     )
     result.outcome = "idle"
     const messages = await agent.collectMessages(sessionID)
-    for (const { parts } of messages) {
-      for (const part of parts) {
-        const value = part as unknown as { type: string; tool?: string; text?: string; state?: unknown }
-        if (value.type === "tool") {
-          result.toolCalls.push(value.tool ?? "unknown")
-          result.toolDetails.push(JSON.stringify(value))
-        } else if (value.type === "text") {
-          result.finalText += value.text ?? ""
+    for (const message of messages) {
+      if (message.type !== "assistant") continue
+      for (const part of message.content) {
+        if (part.type === "tool") {
+          result.toolCalls.push(part.name)
+          result.toolDetails.push(JSON.stringify(part.state))
+        } else if (part.type === "text") {
+          result.finalText += part.text
         }
       }
     }

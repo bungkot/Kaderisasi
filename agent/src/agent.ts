@@ -1,137 +1,144 @@
+import { spawn, type ChildProcess } from "node:child_process"
+import { randomBytes } from "node:crypto"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createOpencodeClient, createOpencodeServer } from "@opencode-ai/sdk"
-import type { AssistantMessage, Config, FileDiff, Message, OpencodeClient, Part, Permission } from "@opencode-ai/sdk"
+import { OpenCode } from "@opencode/client"
+import type { FileDiffInfo, SessionInfo, SessionMessageInfo } from "@opencode/client"
 import { EventBus } from "./events.js"
 import type { Logger } from "./logger.js"
+import type { OpenCodeConfig, PermissionReply } from "./permission.js"
 
 export type WaitOutcome = "idle" | "timeout" | "error"
-export type PermissionPolicy = (permission: Permission) => "once" | "always" | "reject"
-export type PermissionPrompt = Permission
-
-export interface SessionMessage {
-  info: AssistantMessage
-  parts: Part[]
+export interface PermissionRequest {
+  action: string
+  sessionID: string
+  id: string
 }
+export type PermissionPolicy = (permission: PermissionRequest) => PermissionReply
+export type PermissionPrompt = PermissionRequest
+
+export type SessionMessage = SessionMessageInfo
+
+type Client = ReturnType<typeof OpenCode.make>
 
 export class OpenCodeAgent {
-  private server: { url: string; close(): void } | null = null
-  private client: OpencodeClient | null = null
+  private server: ChildProcess | null = null
+  private client: Client | null = null
   private events: EventBus | null = null
-  private directory: string | null = null
   private homeDir: string | null = null
 
   constructor(private readonly logger: Logger) {}
 
-  async start(config: Config): Promise<void> {
+  async start(config: OpenCodeConfig): Promise<void> {
     this.homeDir = await mkdtemp(join(tmpdir(), "kaderisasi-opencode-"))
-    const keys = ["HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"] as const
-    const saved = new Map<string, string | undefined>()
-    for (const key of keys) saved.set(key, process.env[key])
-    process.env.HOME = this.homeDir
-    process.env.XDG_CONFIG_HOME = join(this.homeDir, ".config")
-    process.env.XDG_DATA_HOME = join(this.homeDir, ".local", "share")
-    process.env.XDG_STATE_HOME = join(this.homeDir, ".local", "state")
-
-    try {
-      this.server = await createOpencodeServer({ port: 0, timeout: 30_000, config })
-    } finally {
-      for (const [key, value] of saved) {
-        if (value === undefined) delete process.env[key]
-        else process.env[key] = value
-      }
+    const password = randomBytes(24).toString("hex")
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      HOME: this.homeDir,
+      XDG_CONFIG_HOME: join(this.homeDir, ".config"),
+      XDG_DATA_HOME: join(this.homeDir, ".local", "share"),
+      XDG_STATE_HOME: join(this.homeDir, ".local", "state"),
+      OPENCODE_CONFIG_CONTENT: JSON.stringify(config),
+      OPENCODE_PASSWORD: password,
     }
 
-    this.client = createOpencodeClient({ baseUrl: this.server.url })
-    this.events = new EventBus(this.client, (error) => {
-      this.logger.error("agent", "event_stream_error", {
-        error: error instanceof Error ? error.message : String(error),
-      })
+    const child = spawn("opencode", ["serve", "--hostname=127.0.0.1", "--port=0"], {
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
     })
-    this.events.start(this.directory ?? undefined)
-    this.logger.info("agent", "server_up", { url: this.server.url, isolatedHome: this.homeDir })
+
+    const url = await new Promise<string>((resolve, reject) => {
+      let settled = false
+      let output = ""
+      const timer = setTimeout(() => fail("server_start_timeout"), 30_000)
+      const fail = (message: string) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        reject(new Error(`${message}: ${output.slice(-1000)}`))
+      }
+      const onData = (chunk: Buffer) => {
+        if (settled) return
+        output += chunk.toString()
+        const match = output.match(/server listening on (https?:\/\/\S+)/)
+        if (!match) return
+        settled = true
+        clearTimeout(timer)
+        resolve(match[1]!.trim())
+      }
+      child.stdout?.on("data", onData)
+      child.stderr?.on("data", onData)
+      child.once("error", (error) => fail(error.message))
+      child.once("exit", (code) => fail(`server exited with code ${code}`))
+    })
+
+    this.server = child
+    this.client = OpenCode.make({
+      baseUrl: url,
+      headers: { authorization: `Basic ${Buffer.from(`opencode:${password}`).toString("base64")}` },
+    })
+    this.events = new EventBus(
+      (signal) => this.requireClient().event.subscribe({ signal }),
+      (error) => {
+        this.logger.error("agent", "event_stream_error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      },
+    )
+    this.events.start()
+    this.logger.info("agent", "server_up", { url, isolatedHome: this.homeDir })
   }
 
   handlePermissions(policy: PermissionPolicy): void {
     const events = this.events
     if (!events) return
     events.on((event) => {
-      if (event.type !== "permission.updated") return
-      const permission = event.properties as unknown as Permission | undefined
-      if (!permission) return
-      const response = policy(permission)
+      if (event.type !== "permission.asked") return
+      const data = event.data as { sessionID?: string; id?: string; action?: string } | undefined
+      if (!data?.sessionID || !data.id) return
+      const decision = policy({
+        action: data.action ?? "",
+        sessionID: data.sessionID,
+        id: data.id,
+      })
       void this.requireClient()
-        .postSessionIdPermissionsPermissionId({
-          path: { id: permission.sessionID, permissionID: permission.id },
-          body: { response },
-        })
+        .permission.reply({ sessionID: data.sessionID, requestID: data.id, decision })
         .catch(() => undefined)
     })
   }
 
-  private requireClient(): OpencodeClient {
+  private requireClient(): Client {
     if (!this.client) throw new Error("OpenCode agent is not started")
     return this.client
   }
 
-  private unwrap<T>(result: { data?: T }): T {
-    if (result.data === undefined) throw new Error("OpenCode server returned an empty response")
-    return result.data
-  }
-
-  async createSession(directory: string, title: string): Promise<string> {
-    this.directory = directory
-    const result = await this.requireClient().session.create({
-      query: { directory },
-      body: { title },
+  async createSession(
+    directory: string,
+    title: string,
+    agent: string,
+    model: { providerID: string; modelID: string },
+  ): Promise<string> {
+    const session: SessionInfo = await this.requireClient().session.create({
+      location: { directory },
+      title,
+      agent,
+      model: { providerID: model.providerID, id: model.modelID },
     })
-    const session = this.unwrap(result) as { id?: string }
-    if (!session.id) throw new Error("OpenCode session has no id")
     return session.id
   }
 
-  async prompt(
-    sessionID: string,
-    agent: string,
-    model: { providerID: string; modelID: string },
-    text: string,
-  ): Promise<void> {
-    const result = await this.requireClient().session.promptAsync({
-      path: { id: sessionID },
-      query: this.directory ? { directory: this.directory } : undefined,
-      body: { model, agent, parts: [{ type: "text", text }] },
-    })
-    if (result.error) throw new Error(`prompt_async_failed: ${JSON.stringify(result.error)}`)
+  async prompt(sessionID: string, text: string): Promise<void> {
+    await this.requireClient().session.prompt({ sessionID, text })
   }
 
-  async promptAndWait(
-    sessionID: string,
-    agent: string,
-    model: { providerID: string; modelID: string },
-    text: string,
-    timeoutMs: number,
-  ): Promise<{ info: AssistantMessage; parts: Part[] }> {
-    const promise = this.requireClient()
-      .session.prompt({
-        path: { id: sessionID },
-        query: this.directory ? { directory: this.directory } : undefined,
-        body: { model, agent, parts: [{ type: "text", text }] },
-      })
-      .then((result) => this.unwrap(result) as { info: AssistantMessage; parts: Part[] })
-
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error("agent_timeout")), Math.max(0, timeoutMs))
-    })
-
-    try {
-      return await Promise.race([promise, timeout])
-    } catch (err) {
+  async promptAndWait(sessionID: string, text: string, timeoutMs: number): Promise<void> {
+    await this.prompt(sessionID, text)
+    const outcome = await this.waitForIdle(sessionID, Date.now() + timeoutMs)
+    if (outcome !== "idle") {
       await this.abort(sessionID).catch(() => undefined)
-      throw err
-    } finally {
-      if (timer) clearTimeout(timer)
+      if (outcome === "timeout") throw new Error("agent_timeout")
+      throw new Error("session_error: session stream reported an error")
     }
   }
 
@@ -140,45 +147,29 @@ export class OpenCodeAgent {
     if (!events) return "error"
     return new Promise<WaitOutcome>((resolve) => {
       let settled = false
-      let started = false
-      let timer: ReturnType<typeof setTimeout> | undefined
-      let poll: ReturnType<typeof setInterval> | undefined
       let off: () => void = () => undefined
-
-      const cleanup = () => {
-        if (timer) clearTimeout(timer)
-        if (poll) clearInterval(poll)
-        off()
-      }
+      const controller = new AbortController()
       const settle = (outcome: WaitOutcome) => {
         if (settled) return
         settled = true
-        cleanup()
+        clearTimeout(timer)
+        controller.abort()
+        off()
         resolve(outcome)
       }
 
-      timer = setTimeout(() => settle("timeout"), Math.max(0, deadline - Date.now()))
-      poll = setInterval(() => {
-        const dir = this.directory
-        const options = dir ? { query: { directory: dir } } : {}
-        void this.requireClient()
-          .session.status(options)
-          .then((result) => {
-            if (settled) return
-            const status = this.unwrap(result) as Record<string, { type: string }>
-            const st = status[sessionID]
-            if (st && st.type === "busy") started = true
-            else if (started && st && st.type === "idle") settle("idle")
-            else if (started && !st) settle("idle")
-          })
-          .catch(() => undefined)
-      }, 1000)
+      const timer = setTimeout(() => settle("timeout"), Math.max(0, deadline - Date.now()))
+      void this.requireClient()
+        .experimental.session.wait({ sessionID }, { signal: controller.signal })
+        .then(() => settle("idle"))
+        .catch(() => undefined)
 
       off = events.on((event) => {
-        if (event.type === "session.idle" && event.properties?.sessionID === sessionID) settle("idle")
+        const data = event.data as { sessionID?: string } | undefined
+        if (event.type === "session.idle" && (!data?.sessionID || data.sessionID === sessionID)) settle("idle")
         if (
-          event.type === "session.error" &&
-          (!event.properties?.sessionID || event.properties.sessionID === sessionID)
+          (event.type === "session.execution.failed" || event.type === "session.execution.interrupted") &&
+          (!data?.sessionID || data.sessionID === sessionID)
         ) {
           settle("error")
         }
@@ -187,35 +178,29 @@ export class OpenCodeAgent {
   }
 
   async getSessionStatus(sessionID: string): Promise<string | undefined> {
-    const dir = this.directory
-    const options = dir ? { query: { directory: dir } } : {}
-    const result = await this.requireClient().session.status(options)
-    const status = this.unwrap(result) as Record<string, { type: string }>
-    return status[sessionID]?.type
+    const session: SessionInfo = await this.requireClient().session.get({ sessionID })
+    return session.time.busy && (!session.time.idle || session.time.busy > session.time.idle) ? "busy" : "idle"
   }
 
   async collectMessages(sessionID: string): Promise<SessionMessage[]> {
-    const result = await this.requireClient().session.messages({ path: { id: sessionID } })
-    return this.unwrap(result) as unknown as SessionMessage[]
+    return this.requireClient().session.context({ sessionID })
   }
 
-  async collectDiff(sessionID: string): Promise<FileDiff[]> {
-    const result = await this.requireClient().session.diff({ path: { id: sessionID } })
-    return this.unwrap(result) as FileDiff[]
+  async collectDiff(sessionID: string): Promise<FileDiffInfo[]> {
+    return this.requireClient().session.diff({ sessionID })
   }
 
   async abort(sessionID: string): Promise<void> {
-    await this.requireClient().session.abort({ path: { id: sessionID } })
+    await this.requireClient().session.interrupt({ sessionID })
   }
 
   async stop(): Promise<void> {
     this.events?.stop()
-    this.server?.close()
+    this.server?.kill("SIGTERM")
     if (this.homeDir) await rm(this.homeDir, { recursive: true, force: true }).catch(() => undefined)
     this.server = null
     this.client = null
     this.events = null
-    this.directory = null
     this.homeDir = null
   }
 }

@@ -19,23 +19,18 @@ export function meter(messages: SessionMessage[]): Metering {
   let toolCalls = 0
 
   for (const message of messages) {
-    const info = message.info as unknown as {
-      role?: string
-      tokens?: { input?: number; output?: number; reasoning?: number; cache?: { read?: number; write?: number } }
-      cost?: number
-    }
-    if (info?.role !== "assistant") continue
+    if (message.type !== "assistant") continue
     steps += 1
-    const tokens = info.tokens
+    const tokens = message.tokens
     if (tokens) {
       input += tokens.input ?? 0
       output += tokens.output ?? 0
       reasoning += tokens.reasoning ?? 0
-      cacheRead += tokens.cache?.read ?? 0
-      cacheWrite += tokens.cache?.write ?? 0
+      cacheRead += tokens.cache.read ?? 0
+      cacheWrite += tokens.cache.write ?? 0
     }
-    cost += info.cost ?? 0
-    toolCalls += (message.parts ?? []).filter((part) => part.type === "tool").length
+    cost += message.cost ?? 0
+    toolCalls += (message.content ?? []).filter((part) => part.type === "tool").length
   }
 
   return {

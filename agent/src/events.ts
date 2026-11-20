@@ -1,38 +1,34 @@
-export type EventHandler = (event: { type: string; properties?: Record<string, unknown> }) => void
-
-interface EventStreamClient {
-  event: {
-    subscribe(options?: {
-      query?: { directory?: string }
-      signal?: AbortSignal
-    }): Promise<{ stream: AsyncIterable<unknown> }>
-  }
+export interface BusEvent {
+  type: string
+  data?: Record<string, unknown>
+  location?: { directory?: string }
 }
+
+export type EventHandler = (event: BusEvent) => void
+
+type Subscribe = (signal: AbortSignal) => AsyncIterable<BusEvent>
 
 export class EventBus {
   private readonly handlers = new Set<EventHandler>()
-  private readonly client: EventStreamClient
   private readonly onError: (error: unknown) => void
   private controller: AbortController | null = null
   private stopped = false
 
-  constructor(client: EventStreamClient, onError: (error: unknown) => void) {
-    this.client = client
+  constructor(
+    private readonly subscribe: Subscribe,
+    onError: (error: unknown) => void,
+  ) {
     this.onError = onError
   }
 
-  start(directory?: string): void {
+  start(): void {
     const controller = new AbortController()
     this.controller = controller
     void (async () => {
       try {
-        const result = await this.client.event.subscribe({
-          ...(directory ? { query: { directory } } : {}),
-          signal: controller.signal,
-        })
-        for await (const event of result.stream) {
+        for await (const event of this.subscribe(controller.signal)) {
           if (this.stopped || controller.signal.aborted) break
-          for (const handler of this.handlers) handler(event as { type: string; properties?: Record<string, unknown> })
+          for (const handler of this.handlers) handler(event)
         }
       } catch (error) {
         if (!controller.signal.aborted) this.onError(error)

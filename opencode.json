@@ -1,26 +1,33 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "autoupdate": false,
+  "update": "disable",
   "model": "ollama/huihui_ai/qwen3.5-abliterated:4B",
-  "disabled_providers": ["anthropic", "openai", "google", "github-copilot"],
-  "provider": {
+  "policies": [
+    { "action": "provider.use", "resource": "anthropic", "effect": "deny" },
+    { "action": "provider.use", "resource": "openai", "effect": "deny" },
+    { "action": "provider.use", "resource": "google", "effect": "deny" },
+    { "action": "provider.use", "resource": "github-copilot", "effect": "deny" }
+  ],
+  "providers": {
     "ollama": {
-      "npm": "@ai-sdk/openai-compatible",
       "name": "Ollama",
-      "options": { "baseURL": "http://127.0.0.1:11434/v1" },
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": { "baseURL": "http://127.0.0.1:11434/v1" },
+      "body": { "reasoning_effort": "none" },
       "models": {
-        "huihui_ai/qwen3.5-abliterated:4B": { "name": "Qwen3.5 4B Abliterated (uncensored)", "tool_call": true }
+        "huihui_ai/qwen3.5-abliterated:4B": {
+          "name": "Qwen3.5 4B Abliterated (uncensored)",
+          "capabilities": { "tools": true }
+        }
       }
     }
   },
-  "agent": {
+  "agents": {
     "build": {
-      "permission": {
-        "edit": "allow",
-        "external_directory": "deny",
-        "webfetch": "ask",
-        "doom_loop": "ask"
-      }
+      "permissions": [
+        { "action": "external_directory", "resource": "*", "effect": "deny" },
+        { "action": "webfetch", "resource": "*", "effect": "ask" }
+      ]
     }
   }
 }

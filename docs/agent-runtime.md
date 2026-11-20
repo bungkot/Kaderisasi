@@ -2,19 +2,28 @@
 
 ## Runtime
 
-Agent dijalankan dari `agent/src/index.ts` dan menggunakan
-`@opencode-ai/sdk` untuk membuat server serta session OpenCode. Config per run
-dibangun oleh `buildAgentConfig` di `agent/src/permission.ts`. Nama agent
-benchmark default adalah `pentest-builder`; model dipasok melalui provider
-OpenCode Ollama.
+Agent dijalankan dari `agent/src/index.ts` dan menggunakan klien V2
+`@opencode/client` untuk berbicara dengan server OpenCode 2. Setiap run
+men-spawn `opencode serve` dengan `HOME`, `OPENCODE_CONFIG_CONTENT`, dan
+`OPENCODE_PASSWORD` yang terisolasi. Klien embedded `@opencode/sdk` tidak
+dipakai karena membutuhkan Node 24+ (`await using`), sementara repository ini
+berjalan di Node 22. Config per run dibangun oleh `buildAgentConfig` di
+`agent/src/permission.ts`. Nama agent benchmark default adalah `pentest-builder`;
+model dipasok melalui provider OpenCode Ollama.
+
+Config memakai bentuk native V2: `providers`, `agents`, `policies`, dan
+`permissions`. Provider Ollama memuat
+`body.reasoning_effort: "none"` agar reasoning Qwen3 dimatikan lewat API
+OpenAI-compatible; definisi tool tetap dikirim. Field `body` hanya bekerja pada
+bentuk `providers` (V2), bukan `provider` (V1).
 
 Alur runtime:
 
 1. Buat direktori unik di bawah `workspaceRoot` dan simpan task card yang sudah
    dibersihkan.
-2. Buat session OpenCode dengan direktori tersebut sebagai working directory.
-3. Kirim prompt, tunggu event SSE, dan gunakan `session.status` sebagai fallback
-   polling.
+2. Buat session OpenCode dengan direktori tersebut sebagai location.
+3. Kirim prompt, lalu tunggu `experimental.session.wait` dan event `session.idle`
+   atau `session.execution.failed`.
 4. Saat session idle, validasi artefak dan `findings.json`; `main.py` diperiksa
    dengan `python3 -m py_compile`.
 5. Jika validasi gagal, kirim error validasi sebagai repair prompt sampai
@@ -56,6 +65,11 @@ Satu temuan memiliki `id`, `title`, `owasp_id`, `severity`, `endpoint`,
   melalui tool agent. Tinjau kode sebelum eksekusi di luar run lab terkendali.
 - Policy OpenCode membatasi tool dan pola perintah, tetapi bukan sandbox OS.
   Beberapa perintah yang diizinkan, termasuk `curl`, dapat mengakses jaringan.
+- Pada V2, aksi `doom_loop` tidak lagi tersedia, sehingga pembatasan lama
+  `doom_loop: "deny"` tidak dapat diterapkan; `webfetch`, `websearch`, `subagent`,
+  `skill`, `question`, dan `external_directory` tetap ditolak lewat `permissions`.
+- Mati reasoning mengubah perilaku dan biaya model, tetapi tidak menjamin
+  keluaran bebas reasoning pada model atau runtime lain.
 - Pemeriksaan diff mendeteksi path file di luar workspace yang dilaporkan oleh
   session; ini bukan pencegahan akses filesystem yang komprehensif.
 - Evaluator saat ini tidak memonitor seluruh HTTP request yang dibuat skrip,
