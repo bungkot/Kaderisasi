@@ -93,10 +93,24 @@ npx tsx agent/src/index.ts run \
   --out ./runs/single-run.json
 ```
 
+## Confirmed trial outcome (2026-11-20)
+
+This trial was executed on a Windows/WSL2 host whose effective Docker VM cap was
+about 4.8 GiB, not exactly 4 GB. The 1.5b stack was stable and fit the documented
+memory limits, but `toolcheck` did not report `ok: true` for either
+`qwen2.5:1.5b` or `qwen2.5:3b`: no tool call was emitted. The 3b /
+`mem_limit: 3g` fallback restarted WSL on this host. A diagnostic run of A05
+timed out with zero tool calls and no deliverables; it is not a model-quality
+result. See [Low-memory trial findings](./low-memory-trial-findings.md) for the
+measurements, logs, and reproduction steps.
+
 ## If it fails
 
 - `toolcheck` fails or the agent loops without emitting tool calls: the model
   is too small for this loop. Try `qwen2.5:3b` with Ollama `mem_limit: 3g`.
+  Confirmed on the test host: this fallback also failed `toolcheck` and caused a
+  WSL restart, so do not use it below ~5 GB without first lowering
+  `OLLAMA_CONTEXT_LENGTH`.
 - Ollama is killed while loading: lower `OLLAMA_CONTEXT_LENGTH` to `4096`, or
   confirm the 4 GB limit is actually applied to the Docker Desktop VM.
 - Pull fails with `no space left on device`: remove unused images and old

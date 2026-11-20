@@ -3,7 +3,11 @@
 ## Prerequisites
 
 - Node.js 22 or newer and npm.
-- The `opencode` CLI callable from `PATH` to run the agent.
+- The `opencode` CLI callable from `PATH` to run the agent. On Windows, Node
+  needs the native `opencode.exe`, not the `.cmd`/`.ps1` shims; if
+  `spawn opencode ENOENT` occurs, prepend
+  `%APPDATA%\npm\node_modules\@opencode\cli\bin` to `PATH` for the agent process.
+  See [Low-memory trial findings](./low-memory-trial-findings.md).
 - Ollama with the selected model available.
 - Python 3 for syntax validation of `main.py`.
 - Docker Compose is only needed for the local stack provided by the project.
@@ -112,8 +116,9 @@ Ollama data is stored in the project's `.ollama/` directory; models are in
 
 The `harness` service is available in the `bench` profile. The image built by
 the `Dockerfile` does not install the `opencode` CLI; instead, the host binary
-is mounted via `OPENCODE_BIN`, so the service is runnable. However, full
-15-minute runs timed out on CPU inference. For a local benchmark, run the
+is mounted via `OPENCODE_BIN`, so the service is runnable. Confirmed local trials
+timed out even with `qwen2.5:1.5b`, with no tool calls emitted; see
+[Low-memory trial findings](./low-memory-trial-findings.md). For a local benchmark, run the
 harness from a host that has `opencode` on `PATH`:
 
 ```bash
@@ -140,4 +145,4 @@ changes for each experiment. The seed controls task order and bootstrapping, but
 does not make model inference deterministic. All failures must be preserved and
 reported alongside successful runs.
 
-The benchmark result structure is summarized in [Pelaporan](./reporting.md).
+The benchmark result structure is summarized in [Reporting](./reporting.md).

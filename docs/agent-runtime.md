@@ -84,9 +84,16 @@ on a local lab, not for claiming production-grade security isolation.
 ## Brief troubleshooting
 
 - Run `agent ... toolcheck` to check the model's tool calling before
-  experimenting.
+  experimenting. A 120 s timeout can expire during prompt processing on slow
+  CPU-only inference; use `--timeout-ms 600000` in that case. Confirmed trials
+  on small models produced no tool call; see
+  [Low-memory trial findings](./low-memory-trial-findings.md).
 - Ensure the `opencode` CLI, Ollama, the selected model, and `python3` are
-  available.
+  available. On Windows the CLI must be reachable as a native executable, not
+  only as a `.cmd`/`.ps1` shim.
+- If a run reports `agent_timeout` while its transcript already contains an
+  `idle` message, inspect the session-wait and event handling path; this was
+  observed in a confirmed trial and is not yet explained by the source.
 - Check the structured logs, `transcripts/<run-id>.json`, `run.json`, and
   `errors` if the run status is not `completed`.
 - Artifact repair is performed only up to the configured repair limit; failed

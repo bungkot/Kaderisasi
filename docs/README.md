@@ -11,6 +11,7 @@ blueprint for components that have not yet been built. Start with
 | [Evaluation](./evaluation.md) | OWASP tasks, ground truth, scores, and statistics |
 | [Operations](./operations.md) | Prerequisites, local commands, and Docker Compose |
 | [Low-memory Docker trial](./docker-desktop-4gb.md) | Experimental Compose override for a ~4 GB Docker Desktop VM |
+| [Low-memory trial findings](./low-memory-trial-findings.md) | Confirmed results and limits of the experimental low-memory stack |
 | [Reporting](./reporting.md) | Result artifacts and HTML reports |
 
 ## Scope
@@ -28,8 +29,10 @@ authorized.
   are present in the repository.
 - Docker Compose provides Ollama, Juice Shop, and an optional benchmark runner.
 - The Compose runner mounts the host `opencode` binary via `OPENCODE_BIN` and
-  reaches the agent loop. Full 15-minute runs still time out on CPU-only 4B
-  inference, so no complete script has been produced yet.
+  reaches the agent loop. Confirmed trials show that a 15-minute run also times
+  out with `qwen2.5:1.5b`: the model emits no tool call and the session idle
+  event was not acted on by the loop. No complete script has been produced yet;
+  see [Low-memory trial findings](./low-memory-trial-findings.md).
 - Evaluation and safety controls are currently based on artifact validation and
   heuristics; network boundaries and isolated execution are not yet enforced by
   the repository.
