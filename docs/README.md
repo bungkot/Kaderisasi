@@ -29,10 +29,16 @@ authorized.
   are present in the repository.
 - Docker Compose provides Ollama, Juice Shop, and an optional benchmark runner.
 - The Compose runner mounts the host `opencode` binary via `OPENCODE_BIN` and
-  reaches the agent loop. Confirmed trials show that a 15-minute run also times
-  out with `qwen2.5:1.5b`: the model emits no tool call and the session idle
-  event was not acted on by the loop. No complete script has been produced yet;
-  see [Low-memory trial findings](./low-memory-trial-findings.md).
+  reaches the agent loop. The active override is tuned for the native 8 GB
+  Linux host: Ollama runs the uncensored default
+  `huihui_ai/qwen3.5-abliterated:4B` with `mem_limit: 4g` (the WSL trial used
+  2 g and no model). `npx tsx agent/src/index.ts toolcheck --model
+  ollama/huihui_ai/qwen3.5-abliterated:4B` reports `ok: true` on this host: the
+  model emits a `shell` tool call. Full A05 runs still end in `timeout` — the
+  4B model is CPU-bound here (steps take minutes), so a 15-minute run does not
+  complete; the harness loop settles on `session.execution.succeeded`
+  (opencode 2.3.2 does not emit `session.idle`). See [Low-memory trial
+  findings](./low-memory-trial-findings.md) for the WSL-era results.
 - Evaluation and safety controls are currently based on artifact validation and
   heuristics; network boundaries and isolated execution are not yet enforced by
   the repository.

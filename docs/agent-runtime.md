@@ -23,7 +23,8 @@ Runtime flow:
    card.
 2. Create an OpenCode session with that directory as the location.
 3. Send the prompt, then wait for `experimental.session.wait` and the
-   `session.idle` or `session.execution.failed` event.
+   `session.idle`, `session.execution.succeeded`, `session.execution.failed` or
+   `session.execution.interrupted` event.
 4. When the session is idle, validate the artifacts and `findings.json`;
    `main.py` is checked with `python3 -m py_compile`.
 5. If validation fails, send the validation error as a repair prompt until

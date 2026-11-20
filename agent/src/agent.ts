@@ -166,7 +166,10 @@ export class OpenCodeAgent {
 
       off = events.on((event) => {
         const data = event.data as { sessionID?: string } | undefined
-        if (event.type === "session.idle" && (!data?.sessionID || data.sessionID === sessionID)) settle("idle")
+        if (
+          (event.type === "session.idle" || event.type === "session.execution.succeeded") &&
+          (!data?.sessionID || data.sessionID === sessionID)
+        ) settle("idle")
         if (
           (event.type === "session.execution.failed" || event.type === "session.execution.interrupted") &&
           (!data?.sessionID || data.sessionID === sessionID)
