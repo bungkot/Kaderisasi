@@ -41,13 +41,25 @@ Session summary of the follow-up period on the native 8 GB Linux host (2026-11-2
   the 4B model emitting `tool_calls` when the prompt explicitly asks it to use
   the tool.
 
-## A05 run with the 30-minute timeout
+## A05 run with the 30-minute timeout (run #3)
 
 - `npx tsx agent/src/index.ts run --task harness/tasks/A05.json --target
   http://127.0.0.1:3000 --workspace-root ./workspaces --model
   ollama/huihui_ai/qwen3.5-abliterated:4B --ollama-base-url
   http://127.0.0.1:11434/v1 --timeout-ms 1800000 --out
-  ./runs/single-run-4b-native-30min.json` (run started 2026-11-20, ~18:58–19:1x).
+  ./runs/single-run-4b-native-30min.json` — run 19:14:39 → 19:44:45.
+- Result (`runs/single-run-4b-native-30min.json`): `status: timeout`,
+  `steps: 4`, `toolCalls: 3`, `requests: 1`, `repairRounds: 0`,
+  `errors: ["agent_timeout"]`. POST pattern: `500 @19:19:44 (5m0s)` →
+  `200 @19:25:32 (5m40s)` → `200 @19:27:15 (1m40s)` → `200 @19:32:47
+  (5m30s)` → `200 @19:43:21 (10m30s)` → `500 @19:44:45 (1m20s)`.
+- The model actually made deliverables progress: workspace
+  `workspaces/A05_huihui_ai-qwen3.5-abliterated-4B_2026-11-20T19-14-40-792Z_f4efc703f881/`
+  contains `requirements.txt` (17 B) and `README.md` (1941 B, documents the
+  expected scanner CLI and findings.json schema). The transcript shows the
+  model mid-way through creating `main.py` ("Now let me create the main.py
+  file...") when the 30-min deadline hit. `validateWorkspace` runs only after
+  the session goes idle, so no validation/repair could run before the timeout.
 - Previous attempt (900 s, 4 g): `status: timeout`, 4 steps, 2 tool calls,
   1 repair round, no deliverables yet. The session ended with a tool call +
   text; the model is CPU-bound on this host (~8–15 tokens/s), so the ~10k
