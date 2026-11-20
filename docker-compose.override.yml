@@ -1,0 +1,43 @@
+# Experimental override for a Docker Desktop VM limited to ~4 GB.
+# Loaded automatically by `docker compose`. Delete after the trial.
+
+services:
+  ollama:
+    environment:
+      OLLAMA_CONTEXT_LENGTH: "8192"
+      OLLAMA_KV_CACHE_TYPE: q8_0
+      OLLAMA_FLASH_ATTENTION: "1"
+    mem_limit: 2g
+
+  model-init:
+    mem_limit: 256m
+    command:
+      - "ollama pull qwen2.5:1.5b"
+
+  juice-shop:
+    mem_limit: 192m
+
+  harness:
+    mem_limit: 1536m
+    command:
+      - node
+      - dist/index.js
+      - run
+      - --tasks
+      - /app/harness/tasks
+      - --models
+      - ollama/qwen2.5:1.5b
+      - --runs
+      - "1"
+      - --target
+      - http://juice-shop:3000
+      - --seed
+      - "42"
+      - --out
+      - /data/runs
+      - --workspace-root
+      - /app/harness/workspaces
+      - --ollama-base-url
+      - http://ollama:11434/v1
+      - --timeout-ms
+      - "900000"

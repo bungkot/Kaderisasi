@@ -10,6 +10,7 @@ blueprint for components that have not yet been built. Start with
 | [Agent runtime](./agent-runtime.md) | Agent lifecycle, artifact contract, and safety boundaries |
 | [Evaluation](./evaluation.md) | OWASP tasks, ground truth, scores, and statistics |
 | [Operations](./operations.md) | Prerequisites, local commands, and Docker Compose |
+| [Low-memory Docker trial](./docker-desktop-4gb.md) | Experimental Compose override for a ~4 GB Docker Desktop VM |
 | [Reporting](./reporting.md) | Result artifacts and HTML reports |
 
 ## Scope
